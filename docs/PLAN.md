@@ -1,4 +1,4 @@
-# CachyOS CAC Setup — Implementation Plan
+# CAC for Linux Distros — Implementation Plan
 
 **Target Platform:** CachyOS (Arch-based Linux, x86_64 and aarch64)
 **Primary Language:** Python 3.10+ (orchestrator, entry points, distro abstraction)

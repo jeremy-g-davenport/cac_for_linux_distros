@@ -1,8 +1,4 @@
----
-title: CAC for CachyOS
----
-
-# CAC for CachyOS
+# CAC for Linux Distros
 
 A DoW Common Access Card (CAC / smart card) setup tool for CachyOS and other
 Arch-based Linux distributions.
@@ -13,6 +9,6 @@ Arch-based Linux distributions.
 
 ## Project Links
 
-- [GitHub Repository](https://github.com/{{ site.github.owner_name }}/{{ site.github.repository_name }})
-- [README](https://github.com/{{ site.github.owner_name }}/{{ site.github.repository_name }}#readme)
-- [Contributing Guide](https://github.com/{{ site.github.owner_name }}/{{ site.github.repository_name }}/blob/main/CONTRIBUTING.md)
+- [GitHub Repository](https://github.com/jeremy-g-davenport/cac_for_linux_distros/)
+- [README](https://github.com/jeremy-g-davenport/cac_for_linux_distros#readme)
+- [Contributing Guide](https://github.com/jeremy-g-davenport/cac_for_linux_distros//blob/main/CONTRIBUTING.md)

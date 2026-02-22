@@ -56,6 +56,18 @@ approved. Do not open branches speculatively.
 
 ---
 
+## Before You Write Code
+
+**Read the implementation plan first.** The plan is the authoritative source
+for architecture, step definitions, code skeletons, contracts, and the
+install/uninstall symmetry table. Contributing without reading it leads to
+work that cannot be merged.
+
+- [Implementation Plan (docs/PLAN.md)](docs/PLAN.md)
+
+PRs that contradict the plan's contracts or skip the symmetry table will be
+closed until brought into alignment.
+
 ---
 
 ## Code Standards
@@ -73,7 +85,7 @@ approved. Do not open branches speculatively.
 
 **Install/uninstall symmetry**
 - Every install action requires a documented uninstall counterpart in the
-  Section 4 symmetry table in `PLAN.md` before it can be merged.
+  Section 4 symmetry table in `docs/PLAN.md` before it can be merged.
 
 **Python**
 - Lint with `ruff check` before committing.
