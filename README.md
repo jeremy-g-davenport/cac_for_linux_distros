@@ -115,13 +115,13 @@ installation, troubleshooting, certificate management, snapshots, and more.
 
 ## Contributing
 
-See `CONTRIBUTING.md` (created in Phase 3) for the full contribution guide,
+See `CONTRIBUTING.md` for the full contribution guide,
 including branch naming conventions, the pre-merge checklist, and required
 CI checks.
 
 **Branch naming:** `p<phase>/<name>` for phase work (e.g. `p1/packages`,
 `p2/main-window`); `ci/<name>` for repository infrastructure. The full
-branch name table is at the top of `cachy_cac/PLAN.md`.
+branch name table is in [`docs/PLAN.md`](docs/PLAN.md).
 
 ---
 
