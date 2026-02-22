@@ -37,41 +37,52 @@ controls, security policies, or acceptable use rules.
 
 ## Project Plan
 
-### Phase 1 — CLI Backend (Bash + Python orchestration)
+### Phase 1 — CLI Backend *(in development)*
 
-- [ ] **Architecture & project structure** — define module boundaries, entry
-      points, and environment-variable contract between Python orchestrator and
-      Bash execution units
-- [ ] **Core library implementation** — `lib/log.sh`, `lib/detect.sh`,
-      `lib/aur.sh`, `lib/packages.sh`, `lib/service.sh`, `lib/certs.sh`,
-      `lib/browser.sh`, `lib/import.sh`, `lib/pkcs11.sh`, `lib/verify.sh`
-- [ ] **OpenSC configuration** — write `opensc.conf` CAC driver forcing
-      (`force_card_driver = cac`); detect and unload conflicting kernel modules
-      (`pn533`, `nfc`) before reader access
-- [ ] **Legacy PKCS11 cleanup** — remove stale `cackey`/`coolkey` NSS entries
-      before registering OpenSC to prevent silent auth failures
-- [ ] **Certificate import ordering** — sort root CAs before intermediates to
-      ensure correct chain validation
-- [ ] **Enhanced verification** — `pkcs11-tool --list-objects` to confirm card
-      objects are readable through OpenSC after setup
-- [ ] **VMware/Omnissa Horizon symlink** *(optional)* — link `opensc-pkcs11.so`
-      into Horizon's pkcs11 directory for virtual desktop environments
-- [ ] **Install workflow** — `cac_setup.py` orchestrator + `bash/install.sh`
-      execution unit
-- [ ] **Uninstall workflow** — `cac_uninstall.py` orchestrator +
-      `bash/uninstall.sh` execution unit
-- [ ] **Testing suite** — BATS unit tests for all library modules; manual
-      integration test checklist
-- [ ] **CI pipeline** — GitHub Actions: ShellCheck, `bash -n`, and BATS on
-      every push
+A three-layer architecture: Python orchestration (`orchestrator/`), distro
+abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
 
-### Phase 2 — PyQt6 GUI Application *(placeholder — not started)*
+- [ ] Python orchestration layer — subprocess management, state tracking,
+      cancellation with automatic rollback, audit log, config snapshots
+- [ ] Distro abstraction layer — Arch/CachyOS driver; stub for future Debian
+- [ ] Bash library modules — logging, environment detection, AUR helper,
+      package installation, pcscd service, certificate download and import,
+      browser/NSS discovery, PKCS11 registration, post-install verification
+- [ ] Install and uninstall workflows — `cac_setup.py` + `cac_uninstall.py`;
+      uninstall is fully symmetric and idempotent
+- [ ] Testing suite — BATS unit tests with mocked system commands; Python
+      `unittest` for the orchestration layer
+- [ ] User documentation — `README.md`, `KNOWN_ISSUES.md`
 
-- [ ] GUI design and UX requirements
-- [ ] System tray integration (`libayatana-appindicator`)
-- [ ] GUI implementation and packaging
-- [ ] PAM login integration (`pam_pkcs11`) — use CAC for Linux system login
-      with DoD DN subject mapping
+### Phase 2 — PyQt6 GUI Application *(planned — placeholder)*
+
+- [ ] Installation wizard (`QWizard`) driven by the Phase 1 orchestration layer
+- [ ] Application loading splash screen
+- [ ] System tray indicator (`libayatana-appindicator`) with card status and
+      context menu
+- [ ] Main window — ActivClient-style smart card viewer (certificates, reader
+      status, card identity, PIN management)
+
+### Phase 3 — GitHub Actions CI/CD *(planned)*
+
+- [ ] `ci.yml` — ShellCheck, `bash -n`, Python lint (`ruff`), BATS unit tests
+      (mocked on `ubuntu-latest`; real Arch packages via `archlinux:latest`
+      container), Python `unittest` matrix (3.10 / 3.11 / 3.12)
+- [ ] `release.yml` — tag-triggered GitHub Release with source archive and
+      SHA-256 checksum
+
+### Phase 4 — Quarterly Release Cadence *(planned)*
+
+Conditional quarterly releases (cut only when corrections have accumulated),
+structured issue triage, per-item implementation plans for all accepted
+changes, and contributor communication standards. See `cachy_cac/PLAN.md`
+Section 10 for the full process definition.
+
+### Phase 5 — Help Guide *(planned)*
+
+In-application Help dialog (`F1` / Help menu) with a navigable topic tree,
+real-time search with match highlighting, and full content covering
+installation, troubleshooting, certificate management, snapshots, and more.
 
 ---
 
@@ -89,15 +100,30 @@ controls, security policies, or acceptable use rules.
 | Debian-based | Debian, Ubuntu, Linux Mint, Pop!\_OS | `apt`/`dpkg` package backend required; see also the upstream [linux_cac](linux_cac/) reference |
 
 > Contributions for additional package backends are welcome once the Arch
-> implementation is stable.
+> implementation is stable. The distro abstraction layer (`distros/`) is
+> designed to make adding a new distro a self-contained change.
 
 ## Supported Architectures
 
 | Architecture | Status | Notes |
 |---|---|---|
 | `x86_64` | **In Development** | Primary target |
-| `aarch64` | Future consideration | ARM64: Raspberry Pi 4/5, Asahi Linux (Apple Silicon), ARM thin clients |
+| `aarch64` | **In Development** | ARM64: Raspberry Pi 4/5, Asahi Linux, ARM thin clients |
 | `riscv64` | Future consideration | Negligible deployment footprint today |
+
+---
+
+## Contributing
+
+See `CONTRIBUTING.md` (created in Phase 3) for the full contribution guide,
+including branch naming conventions, the pre-merge checklist, and required
+CI checks.
+
+**Branch naming:** `p<phase>/<name>` for phase work (e.g. `p1/packages`,
+`p2/main-window`); `ci/<name>` for repository infrastructure. The full
+branch name table is at the top of `cachy_cac/PLAN.md`.
+
+---
 
 ## License
 

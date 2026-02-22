@@ -1,5 +1,6 @@
-# Claude Code session data
+# Claude Code session data and memory
 .claude/
+Claude.md
 
 # Project source directories (excluded linux_cac fork, and cachy_cac planning documents)
 cachy_cac/
@@ -11,6 +12,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.envrc
 
 # Python
 __pycache__/
@@ -24,3 +26,4 @@ build/
 
 # Logs
 *.log
+
