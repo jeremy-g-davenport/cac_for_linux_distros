@@ -1,6 +1,6 @@
 # Claude Code session data and memory
 .claude/
-Claude.md
+CLAUDE.md
 
 # Project source directories (excluded linux_cac fork, and cachy_cac planning documents)
 cachy_cac/
