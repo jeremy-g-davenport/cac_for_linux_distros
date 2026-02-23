@@ -51,7 +51,7 @@ abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
   - [x] `lib/aur.sh` — AUR helper detection (`paru`/`yay`), non-root install wrapper
   - [x] `lib/packages.sh` — pacman sync + package installation
   - [x] `lib/opensc_conf.sh` — force CAC driver in `/etc/opensc/opensc.conf`
-  - [ ] `lib/service.sh` — enable + start `pcscd.socket`
+  - [x] `lib/service.sh` — enable + start `pcscd.socket`
   - [ ] `lib/certs.sh` — DoD certificate bundle download + checksum validation
   - [ ] `lib/browser.sh` — browser detection, NSS database discovery
   - [ ] `lib/import.sh` — `certutil` certificate import into all NSS databases
