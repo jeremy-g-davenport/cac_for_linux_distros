@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write  # required to create releases and upload assets
+
+jobs:
+  # Re-run the full CI suite on the exact release SHA before publishing anything.
+  # workflow_call means this blocks synchronously — the release job cannot start
+  # until every CI check passes.
+  ci:
+    name: CI (full suite on release SHA)
+    uses: ./.github/workflows/ci.yml
+
+  create-release:
+    name: Create GitHub Release
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for changelog generation
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build source archive
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          ARCHIVE="cac_for_linux_distros-${VERSION}.tar.gz"
+          git archive --format=tar.gz \
+            --prefix="cac_for_linux_distros-${VERSION}/" \
+            HEAD > "${ARCHIVE}"
+          sha256sum "${ARCHIVE}" > SHA256SUMS
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "CAC for Linux Distros v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## CAC for Linux Distros v${{ steps.version.outputs.VERSION }}
+
+            See [KNOWN_ISSUES.md](https://github.com/${{ github.repository }}/blob/main/KNOWN_ISSUES.md)
+            for documented issues and workarounds.
+
+            ### Installation
+
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/cac_for_linux_distros-${{ steps.version.outputs.VERSION }}.tar.gz
+            sha256sum -c SHA256SUMS
+            tar xzf cac_for_linux_distros-${{ steps.version.outputs.VERSION }}.tar.gz
+            cd cac_for_linux_distros-${{ steps.version.outputs.VERSION }}
+            sudo python3 cac_setup.py
+            ```
+
+            ### Verification
+            All CI checks passed on this release SHA:
+            - Bash syntax (`bash -n`) and ShellCheck
+            - Python lint (`ruff`) and unit tests (3.10 / 3.11 / 3.12)
+            - BATS unit tests (ubuntu-latest + mocks; archlinux:latest + real packages)
+          files: |
+            ${{ env.ARCHIVE }}
+            SHA256SUMS
+          fail_on_unmatched_files: true
