@@ -5,9 +5,6 @@ CLAUDE.md
 # Root-level PLAN.md — authoritative copy lives in docs/PLAN.md
 PLAN.md
 
-# Local-only working files
-KNOWN_ISSUES.md
-
 # Upstream reference fork (local only — not part of this project's tracked code)
 linux_cac/
 
