@@ -53,7 +53,7 @@ abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
   - [x] `lib/opensc_conf.sh` — force CAC driver in `/etc/opensc/opensc.conf`
   - [x] `lib/service.sh` — enable + start `pcscd.socket`
   - [x] `lib/certs.sh` — DoD certificate bundle download + checksum validation
-  - [ ] `lib/browser.sh` — browser detection, NSS database discovery
+  - [x] `lib/browser.sh` — browser detection, NSS database discovery
   - [ ] `lib/import.sh` — `certutil` certificate import into all NSS databases
   - [ ] `lib/pkcs11.sh` — `modutil` PKCS11 module registration
   - [ ] `lib/verify.sh` — post-install verification
