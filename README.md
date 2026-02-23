@@ -56,7 +56,7 @@ abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
   - [x] `lib/browser.sh` — browser detection, NSS database discovery
   - [x] `lib/import.sh` — `certutil` certificate import into all NSS databases
   - [x] `lib/pkcs11.sh` — `modutil` PKCS11 module registration
-  - [ ] `lib/verify.sh` — post-install verification
+  - [x] `lib/verify.sh` — post-install verification
 - [ ] Install and uninstall entry points — `cac_setup.py`, `cac_uninstall.py`,
       `bash/install.sh`, `bash/uninstall.sh`
 - [ ] Testing suite — BATS unit tests with mocked system commands; Python
