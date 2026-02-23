@@ -25,8 +25,8 @@
 
 # Local alias for the Python-injected PKCS11_LIB environment variable.
 # Guard for safe BATS re-sourcing.
-[[ -v OPENSC_PKCS11_LIB  ]] || readonly OPENSC_PKCS11_LIB="${PKCS11_LIB}"
-[[ -v PKCS11_MODULE_NAME ]] || readonly PKCS11_MODULE_NAME="CAC Module"
+[[ -v OPENSC_PKCS11_LIB  ]] || OPENSC_PKCS11_LIB="${PKCS11_LIB}"
+[[ -v PKCS11_MODULE_NAME ]] || PKCS11_MODULE_NAME="CAC Module"
 
 cleanup_legacy_pkcs11() {
     # Remove stale cackey/coolkey entries before registering OpenSC.

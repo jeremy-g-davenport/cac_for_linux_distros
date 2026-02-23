@@ -17,7 +17,7 @@
 [[ -v MAGENTA ]] || readonly MAGENTA='\033[0;35m'
 [[ -v NC      ]] || readonly NC='\033[0m'
 
-_CAC_LOG_FILE=""
+[[ -v _CAC_LOG_FILE ]] || _CAC_LOG_FILE=""
 
 log_init() {
     # Create the timestamped log file and write a header.

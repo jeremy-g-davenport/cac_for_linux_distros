@@ -80,6 +80,6 @@ jobs:
       - name: Install Arch dependencies (full sync + upgrade)
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm bash bash-bats nss pcsclite opensc
+          pacman -S --noconfirm bash bats nss pcsclite opensc
       - name: Run BATS unit tests against real Arch binaries
         run: bats tests/*.bats
