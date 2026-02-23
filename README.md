@@ -42,14 +42,23 @@ controls, security policies, or acceptable use rules.
 A three-layer architecture: Python orchestration (`orchestrator/`), distro
 abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
 
-- [ ] Python orchestration layer — subprocess management, state tracking,
+- [x] Python orchestration layer — subprocess management, state tracking,
       cancellation with automatic rollback, audit log, config snapshots
-- [ ] Distro abstraction layer — Arch/CachyOS driver; stub for future Debian
-- [ ] Bash library modules — logging, environment detection, AUR helper,
-      package installation, pcscd service, certificate download and import,
-      browser/NSS discovery, PKCS11 registration, post-install verification
-- [ ] Install and uninstall workflows — `cac_setup.py` + `cac_uninstall.py`;
-      uninstall is fully symmetric and idempotent
+- [x] Distro abstraction layer — Arch/CachyOS driver; stub for future Debian
+- Bash library modules:
+  - [x] `lib/log.sh` — color-coded terminal output + persistent log file
+  - [x] `lib/detect.sh` — root/user/env validation, tool checks, module unload
+  - [x] `lib/aur.sh` — AUR helper detection (`paru`/`yay`), non-root install wrapper
+  - [ ] `lib/packages.sh` — pacman sync + package installation
+  - [ ] `lib/opensc_conf.sh` — force CAC driver in `/etc/opensc/opensc.conf`
+  - [ ] `lib/service.sh` — enable + start `pcscd.socket`
+  - [ ] `lib/certs.sh` — DoD certificate bundle download + checksum validation
+  - [ ] `lib/browser.sh` — browser detection, NSS database discovery
+  - [ ] `lib/import.sh` — `certutil` certificate import into all NSS databases
+  - [ ] `lib/pkcs11.sh` — `modutil` PKCS11 module registration
+  - [ ] `lib/verify.sh` — post-install verification
+- [ ] Install and uninstall entry points — `cac_setup.py`, `cac_uninstall.py`,
+      `bash/install.sh`, `bash/uninstall.sh`
 - [ ] Testing suite — BATS unit tests with mocked system commands; Python
       `unittest` for the orchestration layer
 - [ ] User documentation — `README.md`, `KNOWN_ISSUES.md`
