@@ -1,4 +1,4 @@
-# CAC for CachyOS
+# CAC for Linux Distros
 
 A DoW Common Access Card (CAC / smart card) setup tool for CachyOS and other
 Arch-based Linux distributions.
@@ -75,7 +75,7 @@ abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
 
 Conditional quarterly releases (cut only when corrections have accumulated),
 structured issue triage, per-item implementation plans for all accepted
-changes, and contributor communication standards. See `cachy_cac/PLAN.md`
+changes, and contributor communication standards. See `docs/PLAN.md`
 Section 10 for the full process definition.
 
 ### Phase 5 — Help Guide *(planned)*
@@ -129,3 +129,4 @@ branch name table is in [`docs/PLAN.md`](docs/PLAN.md).
 
 MIT — see [LICENSE](LICENSE) for full text.
 Copyright (c) 2026 Jeremy G. Davenport
+

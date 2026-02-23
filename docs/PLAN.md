@@ -84,15 +84,13 @@ Phase 4 is process, not code. Associated repository files are in `ci/` branches 
 
 ## Getting Started
 
-Before implementing any step, create the `cachy_cac/` directory as a sibling of `linux_cac/` in the project root:
+Before implementing any step, create the `cachy_cac/` directory at the repo root:
 
 ```bash
-mkdir -p "/Cloud/Dropbox/VS Code Projects/CAC for CachyOS/cachy_cac"
+mkdir cachy_cac
 ```
 
-**Do not copy files from `linux_cac/`.** All implementation is written from scratch. The `linux_cac/cac_setup.sh` source is used only as a reference.
-
-Once the directory exists, copy this plan document into it as `cachy_cac/PLAN.md`. From that point, all work happens inside `cachy_cac/`.
+**Do not copy files from `linux_cac/`.** All implementation is written from scratch. The `linux_cac/cac_setup.sh` source is used only as a reference. The authoritative plan lives at `docs/PLAN.md` — do not copy it into `cachy_cac/`.
 
 ---
 
@@ -1994,7 +1992,7 @@ case "$PHASE" in
         # Developer escape hatch: run all phases without Python.
         # REQUIRES: export PKCS11_LIB PCSCD_UNIT REAL_USER REAL_HOME STATE_FILE before running.
         # See tests/helpers/set_test_env.sh for a test wrapper.
-        log_section "CachyOS CAC Setup (standalone mode)"
+        log_section "CAC for Linux Distros — Setup (standalone mode)"
         detect_root; detect_real_user; detect_required_tools; check_browsers_closed
         detect_aur_helper; install_official_packages; verify_certutil; detect_post_install_tools
         configure_opensc_cac_driver
@@ -2027,9 +2025,9 @@ Creates the user-facing `README.md` for `cachy_cac/` that serves as the entry po
 **Required content outline:**
 
 ```markdown
-# cachy_cac — CachyOS CAC Setup
+# CAC for Linux Distros — CAC Setup
 
-Configure CachyOS for DoW Common Access Card (CAC) authentication in Firefox,
+Configure your Linux system for DoW Common Access Card (CAC) authentication in Firefox,
 Chromium, Google Chrome, Microsoft Edge, and Brave.
 
 ## Prerequisites
@@ -2271,7 +2269,7 @@ sudo python3 cac_setup.py        # Re-install from clean state
 
 ### Documenting Issues
 
-Maintain `cachy_cac/KNOWN_ISSUES.md` with entries in this format:
+Maintain `KNOWN_ISSUES.md` (repo root) with entries in this format:
 
 ```markdown
 ## Issue #N: [Short title]
