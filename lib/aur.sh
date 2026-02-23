@@ -40,7 +40,7 @@ aur_install() {
     fi
     log_info "Installing AUR package: $pkg (as $REAL_USER)"
     local s=0
-    sudo -H -u "$REAL_USER" "$_AUR_HELPER" -S --noconfirm "$pkg" >> "$_CAC_LOG_FILE" 2>&1 || s=$?
+    sudo -H -u "$REAL_USER" "$_AUR_HELPER" -S --noconfirm "$pkg" 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || s=$?
     if [[ $s -ne 0 ]]; then
         log_warn "Failed to install AUR package: $pkg (non-fatal, continuing)"
         return $s

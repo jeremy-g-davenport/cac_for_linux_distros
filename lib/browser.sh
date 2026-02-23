@@ -100,8 +100,11 @@ _ensure_nssdb() {
     if [[ ! -d "$nssdb" ]]; then
         log_info "Creating shared Chromium NSS database at: $nssdb"
         sudo -H -u "$REAL_USER" mkdir -p "$nssdb"
-        if ! sudo -H -u "$REAL_USER" certutil -d "sql:$nssdb" -N --empty-password \
-                >> "$_CAC_LOG_FILE" 2>&1; then
+        local _nssdb_init_out _nssdb_init_rc=0
+        _nssdb_init_out=$(sudo -H -u "$REAL_USER" certutil -d "sql:$nssdb" -N --empty-password 2>&1) \
+            || _nssdb_init_rc=$?
+        printf '%s\n' "$_nssdb_init_out" >> "$_CAC_LOG_FILE"
+        if [[ $_nssdb_init_rc -ne 0 ]]; then
             log_error "Failed to initialize NSS database at $nssdb"
             return 1
         fi

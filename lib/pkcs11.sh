@@ -43,7 +43,7 @@ cleanup_legacy_pkcs11() {
             sudo -H -u "$REAL_USER" modutil \
                 -dbdir "sql:$db_dir" \
                 -delete "$legacy_name" \
-                -force >> "$_CAC_LOG_FILE" 2>&1 || true
+                -force 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || true
         fi
     done
 }
@@ -71,7 +71,7 @@ register_pkcs11_in_db() {
         -dbdir "sql:$db_dir" \
         -add "$PKCS11_MODULE_NAME" \
         -libfile "$OPENSC_PKCS11_LIB" \
-        -force >> "$_CAC_LOG_FILE" 2>&1 || s=$?
+        -force 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || s=$?
 
     if [[ $s -ne 0 ]]; then
         log_warn "modutil returned $s for: $db_dir (non-fatal — see log)"
@@ -104,7 +104,7 @@ register_pkcs11_all() {
     # The modutil calls above already cover Firefox correctly.
     if command -v pkcs11-register > /dev/null 2>&1; then
         log_info "Running pkcs11-register (supplemental — non-zero exit expected on CachyOS for Firefox)..."
-        sudo -H -u "$REAL_USER" pkcs11-register >> "$_CAC_LOG_FILE" 2>&1 || true
+        sudo -H -u "$REAL_USER" pkcs11-register 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || true
         log_info "pkcs11-register step complete."
     fi
 
@@ -140,7 +140,7 @@ unregister_pkcs11_all() {
             sudo -H -u "$REAL_USER" modutil \
                 -dbdir "sql:$db_dir" \
                 -delete "$PKCS11_MODULE_NAME" \
-                -force >> "$_CAC_LOG_FILE" 2>&1 || true
+                -force 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || true
             log_success "Removed PKCS11 module from: $db_dir"
             echo "ACTION:pkcs11_unregister|$db_dir|$PKCS11_MODULE_NAME"
         else
