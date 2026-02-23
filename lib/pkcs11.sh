@@ -1,7 +1,8 @@
 #!/bin/bash
 # lib/pkcs11.sh — OpenSC PKCS11 module registration in NSS databases
 #
-# Provides: cleanup_legacy_pkcs11, register_pkcs11_in_db, register_pkcs11_all
+# Provides: cleanup_legacy_pkcs11, register_pkcs11_in_db, register_pkcs11_all,
+#           unregister_pkcs11_all
 #
 # Uses modutil (not certutil) for PKCS11 provider module records in pkcs11.txt.
 # Both tools come from the nss package; certutil handles certificate records,
@@ -108,4 +109,44 @@ register_pkcs11_all() {
     fi
 
     log_success "PKCS11 registration phase complete."
+}
+
+unregister_pkcs11_all() {
+    # Remove the OpenSC PKCS11 module from all NSS databases listed in state.
+    # Reads pkcs11_registered_in from $STATE_FILE via _state_read_list
+    # (defined in lib/detect.sh).
+    # Idempotent: skips databases where the module is already absent.
+    # Must run modutil as $REAL_USER (NSS ownership rule).
+    log_section "PKCS11 Module Unregistration"
+
+    local registered_dbs=()
+    mapfile -t registered_dbs < <(_state_read_list "pkcs11_registered_in")
+
+    if [[ ${#registered_dbs[@]} -eq 0 ]]; then
+        log_info "No PKCS11 registrations found in state — nothing to remove."
+        return 0
+    fi
+
+    local db_dir
+    for db_dir in "${registered_dbs[@]}"; do
+        [[ -z "$db_dir" ]] && continue
+        if [[ ! -d "$db_dir" ]]; then
+            log_info "NSS database absent (already removed?): $db_dir"
+            continue
+        fi
+        if sudo -H -u "$REAL_USER" modutil \
+                -dbdir "sql:$db_dir" -list 2>/dev/null | grep -qi "CAC Module"; then
+            log_info "Removing PKCS11 module from: $db_dir"
+            sudo -H -u "$REAL_USER" modutil \
+                -dbdir "sql:$db_dir" \
+                -delete "$PKCS11_MODULE_NAME" \
+                -force >> "$_CAC_LOG_FILE" 2>&1 || true
+            log_success "Removed PKCS11 module from: $db_dir"
+            echo "ACTION:pkcs11_unregister|$db_dir|$PKCS11_MODULE_NAME"
+        else
+            log_info "PKCS11 module not registered in: $db_dir (already removed)"
+        fi
+    done
+
+    log_success "PKCS11 unregistration phase complete."
 }

@@ -2,7 +2,7 @@
 # lib/packages.sh — Package installation for cac_for_linux_distros
 #
 # Provides: install_official_packages, is_package_installed, verify_certutil,
-#           emit_packages_state
+#           emit_packages_state, remove_smart_card_packages
 #
 # MAINTENANCE NOTE: REQUIRED_PACKAGES is also defined in distros/arch/config.py.
 # Both lists must be kept in sync. The Bash list is the executable authority;
@@ -80,4 +80,44 @@ emit_packages_state() {
     done
     local IFS=','
     echo "STATE:packages_installed=${installed[*]}"
+}
+
+remove_smart_card_packages() {
+    # Remove only smart-card-specific packages that were installed by this tool.
+    # Reads packages_installed from $STATE_FILE via _state_read_list (lib/detect.sh).
+    # Intersects with SMART_CARD_ONLY to avoid removing general utilities (wget, unzip).
+    # Uses `pacman -Rs` to also remove orphaned dependencies.
+    log_section "Package Removal"
+
+    # Packages this tool installed
+    local installed_by_tool=()
+    mapfile -t installed_by_tool < <(_state_read_list "packages_installed" \
+        | sed 's/=.*//')   # strip version suffixes (pkg=version → pkg)
+
+    # Packages safe to remove (smart-card-specific only; not wget/unzip/nss)
+    local smart_card_only=(pcsclite ccid opensc pcsc-tools)
+    local to_remove=()
+    local pkg
+    for pkg in "${smart_card_only[@]}"; do
+        if printf '%s\n' "${installed_by_tool[@]}" | grep -qx "$pkg"; then
+            if is_package_installed "$pkg"; then
+                to_remove+=("$pkg")
+            fi
+        fi
+    done
+
+    if [[ ${#to_remove[@]} -eq 0 ]]; then
+        log_info "No smart-card-specific packages to remove."
+        return 0
+    fi
+
+    log_info "Removing packages: ${to_remove[*]}"
+    local s=0
+    pacman -Rs --noconfirm "${to_remove[@]}" >> "$_CAC_LOG_FILE" 2>&1 || s=$?
+    if [[ $s -ne 0 ]]; then
+        log_warn "pacman -Rs returned $s — packages may have already been removed (non-fatal)"
+    else
+        log_success "Packages removed: ${to_remove[*]}"
+        echo "ACTION:packages_removed|${to_remove[*]}"
+    fi
 }
