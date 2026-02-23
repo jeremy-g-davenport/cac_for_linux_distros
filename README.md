@@ -167,12 +167,12 @@ abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
 - [ ] Main window — ActivClient-style smart card viewer (certificates, reader
       status, card identity, PIN management)
 
-### Phase 3 — GitHub Actions CI/CD *(planned)*
+### Phase 3 — GitHub Actions CI/CD *(complete — implemented before Phase 2)*
 
-- [ ] `ci.yml` — ShellCheck, `bash -n`, Python lint (`ruff`), BATS unit tests
+- [x] `ci.yml` — ShellCheck, `bash -n`, Python lint (`ruff`), BATS unit tests
       (mocked on `ubuntu-latest`; real Arch packages via `archlinux:latest`
       container), Python `unittest` matrix (3.10 / 3.11 / 3.12)
-- [ ] `release.yml` — tag-triggered GitHub Release with source archive and
+- [x] `release.yml` — tag-triggered GitHub Release with source archive and
       SHA-256 checksum
 
 ### Phase 4 — Quarterly Release Cadence *(planned)*

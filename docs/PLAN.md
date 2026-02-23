@@ -5,7 +5,7 @@
 **System Operations:** Bash (`lib/*.sh`, `bash/*.sh` — invoked by Python via subprocess)
 **Source Reference:** `linux_cac/cac_setup.sh` (Bash, Debian/Ubuntu)
 **Work Directory:** repository root (implementation lives directly alongside `docs/`, `linux_cac/`, etc.)
-**Purpose:** Configure CachyOS for DoW Common Access Card (CAC/smart card) authentication in web browsers via OpenSC, pcscd, NSS cert databases, and PKCS11 module registration. Phase 2 (planned) will provide a PyQt6 GUI application with installer, system tray indicator, and ActivClient-style smart card viewer. Phase 3 (planned) establishes GitHub Actions CI/CD. Phase 4 (planned) defines quarterly release cadence and GitHub Issue/PR management.
+**Purpose:** Configure CachyOS for DoW Common Access Card (CAC/smart card) authentication in web browsers via OpenSC, pcscd, NSS cert databases, and PKCS11 module registration. Phase 3 (complete) established GitHub Actions CI/CD before Phase 2 GUI work began. Phase 2 (planned — next) will provide a PyQt6 GUI application with installer, system tray indicator, and ActivClient-style smart card viewer. Phase 4 (planned) defines quarterly release cadence and GitHub Issue/PR management.
 
 ## Quick Start
 
@@ -2528,14 +2528,14 @@ added to the Phase 2 installer and documented in `gui/requirements.txt`.
 
 ---
 
-## 9. Phase 3: GitHub Actions CI/CD
+## 9. Phase 3: GitHub Actions CI/CD *(complete — implemented before Phase 2)*
 
-Phase 3 configures GitHub Actions to run automatically on every push to `main` and on all pull requests targeting `main`. Two workflow files are planned:
+Phase 3 configures GitHub Actions to run automatically on every push to `main` and on all pull requests targeting `main`. Both workflow files are implemented and active:
 
 - `.github/workflows/ci.yml` — continuous integration: linting, syntax checks, BATS unit tests
 - `.github/workflows/release.yml` — release automation: creates GitHub Releases from version tags
 
-Phase 3 is **not implemented until Phase 1 is functionally complete and tested locally**. However, CI readiness is a first-class concern throughout Phase 1 development — each implementation step notes what it must expose to be testable in CI.
+Phase 3 was implemented after Phase 1 and before Phase 2. CI readiness was a first-class concern throughout Phase 1 development — each implementation step was designed to be testable in CI.
 
 ### 9.1 Platform Constraint: No Arch Linux Runner
 
@@ -2615,10 +2615,11 @@ The `CI_INTEGRATION` environment variable gates integration tests: the `integrat
 
 **Working directory note:** All jobs use `working-directory: .` (repository root) because scripts live in `lib/` and `bash/` at the repository root.
 
-**Planned file:** `.github/workflows/ci.yml`
+**Implemented file:** `.github/workflows/ci.yml`
 
 ```yaml
-# Skeleton — not yet implemented; complete during Phase 3
+# Implemented in Phase 3 (p3/ci). The live file is at .github/workflows/ci.yml.
+# The skeleton below documents the intended structure; see the actual file for current YAML.
 name: CI
 
 on:
@@ -2722,10 +2723,11 @@ jobs:
 
 **Branch protection requirement:** `release.yml` must only fire from `main`. Branch protection rules on `main` require all `ci.yml` checks to pass before merge. This is configured in GitHub repository settings, not in the workflow file. Document the required branch protection settings in `CONTRIBUTING.md` (a Phase 3 deliverable, updated in the repository root when Phase 3 is implemented).
 
-**Planned file:** `.github/workflows/release.yml`
+**Implemented file:** `.github/workflows/release.yml`
 
 ```yaml
-# Skeleton — not yet implemented; complete during Phase 3
+# Implemented in Phase 3 (p3/ci). The live file is at .github/workflows/release.yml.
+# The skeleton below documents the intended structure; see the actual file for current YAML.
 name: Release
 
 on:
@@ -2884,7 +2886,9 @@ Elevated review requires: an explicit test for the security-sensitive path, revi
 
 #### 10.3.5 CI Gate
 
-No PR is merged unless all `ci.yml` checks pass. Once Phase 3 is active, this is enforced by branch protection rules. Before Phase 3 is active, a manual checklist is completed and recorded as a PR comment before merge:
+No PR is merged unless all `ci.yml` checks pass. Phase 3 is active and this is enforced by branch protection rules on `main`.
+
+Run these locally before pushing to catch failures early:
 
 - [ ] `shellcheck -x lib/*.sh bash/*.sh` passes locally
 - [ ] `bash -n lib/*.sh bash/*.sh` passes locally
@@ -2956,7 +2960,7 @@ This section establishes the analytical framework for evaluating whether and how
 
 4. **Reversibility.** Every accepted change must maintain the Install/Uninstall Symmetry Contract (Section 0.4). A contribution that installs or modifies something with no uninstall counterpart is not accepted until the uninstall path is included.
 
-5. **CI gate is non-negotiable.** Once Phase 3 is active, no exception is made for bypassing CI checks. The `--no-verify` equivalent does not exist in this project's merge process.
+5. **CI gate is non-negotiable.** Phase 3 is active; no exception is made for bypassing CI checks. The `--no-verify` equivalent does not exist in this project's merge process.
 
 #### 10.5.2 Triage Decision Tree
 
@@ -3940,7 +3944,7 @@ Test results and coverage data should be uploaded as GitHub Actions artifacts fo
 
 ### 12.14 Branch Protection Summary
 
-The following GitHub repository settings must be configured when Phase 3 CI is activated. These are applied in: Repository → Settings → Branches → Add rule → target `main`.
+The following GitHub repository settings should be configured now that Phase 3 CI is active. These are applied in: Repository → Settings → Branches → Add rule → target `main`.
 
 | Setting | Value |
 |---|---|
@@ -3967,18 +3971,18 @@ Document this table in `CONTRIBUTING.md` for repository administrators.
 | `~/.config/mozilla/firefox/*/pkcs11.txt` | Live example of correct `modutil` registration format |
 | `~/.pki/nssdb/pkcs11.txt` | Live example of Chromium shared NSS database structure |
 | `linux_cac/.github/workflows/CI.yml` | Source CI to adapt for Bash/shellcheck/BATS |
-| `.github/workflows/ci.yml` | Phase 3 CI workflow (planned — not yet created; skeleton in Section 9.3 + 12.1) |
-| `.github/workflows/release.yml` | Phase 3 release automation workflow (planned — not yet created; see Section 9.4) |
+| `.github/workflows/ci.yml` | Phase 3 CI workflow (implemented — skeleton in Section 9.3 + 12.1) |
+| `.github/workflows/release.yml` | Phase 3 release automation workflow (implemented — see Section 9.4) |
 | `.github/workflows/stale.yml` | Phase 4 stale issue/PR automation (planned — skeleton in Section 12.6) |
 | `.github/ISSUE_TEMPLATE/bug_report.md` | Bug report template (planned — template in Section 12.3) |
 | `.github/ISSUE_TEMPLATE/feature_request.md` | Feature request template (planned — template in Section 12.3) |
 | `.github/pull_request_template.md` | PR checklist template (planned — template in Section 12.3) |
 | `.github/CODEOWNERS` | Review assignment (planned — template in Section 12.4) |
 | `.github/dependabot.yml` | Dependabot Actions version bumps (planned — skeleton in Section 12.5) |
-| `tests/mocks/` | BATS mock stubs for system commands (planned — not yet created; see Section 9.2) |
-| `version.py` | Authoritative version string (planned — see Section 12.10) |
+| `tests/mocks/` | BATS mock stubs for system commands (implemented in Phase 1 — see Section 9.2) |
+| `version.py` | Authoritative version string (implemented — see Section 12.10) |
 | `SECURITY.md` | Vulnerability reporting policy (planned — template in Section 12.7) |
-| `CONTRIBUTING.md` | Contribution guidelines and branch protection settings (planned — outline in Section 12.8) |
+| `CONTRIBUTING.md` | Contribution guidelines and branch protection settings (implemented — outline in Section 12.8) |
 | `CHANGELOG.md` | Keep a Changelog format; updated on each release (planned — format in Section 12.9) |
 | `.pre-commit-config.yaml` | Local developer pre-commit hooks mirroring CI (planned — skeleton in Section 12.11) |
 | `gui/help/help_dialog.py` | Phase 5 HelpDialog class (planned — spec in Section 11.4) |
