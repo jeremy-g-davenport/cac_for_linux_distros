@@ -54,7 +54,7 @@ abstraction (`distros/`), and Bash execution units (`lib/*.sh`, `bash/*.sh`).
   - [x] `lib/service.sh` — enable + start `pcscd.socket`
   - [x] `lib/certs.sh` — DoD certificate bundle download + checksum validation
   - [x] `lib/browser.sh` — browser detection, NSS database discovery
-  - [ ] `lib/import.sh` — `certutil` certificate import into all NSS databases
+  - [x] `lib/import.sh` — `certutil` certificate import into all NSS databases
   - [ ] `lib/pkcs11.sh` — `modutil` PKCS11 module registration
   - [ ] `lib/verify.sh` — post-install verification
 - [ ] Install and uninstall entry points — `cac_setup.py`, `cac_uninstall.py`,
