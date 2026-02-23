@@ -55,8 +55,9 @@ teardown() {
 }
 
 @test "check_for_firefox leaves FF_FOUND=false when firefox absent" {
-    # PATH has no firefox executable
-    check_for_firefox
+    local no_ff_dir="$BATS_TMPDIR/no_firefox_$$"
+    mkdir -p "$no_ff_dir"
+    PATH="$no_ff_dir" check_for_firefox
     [[ "$FF_FOUND" == "false" ]]
 }
 
