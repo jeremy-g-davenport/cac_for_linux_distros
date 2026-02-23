@@ -8,8 +8,8 @@ PLAN.md
 # Local-only working files
 KNOWN_ISSUES.md
 
-# Project source directories (excluded linux_cac fork, and cachy_cac planning documents)
-cachy_cac/
+# Project source directories (excluded linux_cac fork, and cac_for_linux_distros planning documents)
+cac_for_linux_distros/
 linux_cac/
 
 # OS / editor artifacts

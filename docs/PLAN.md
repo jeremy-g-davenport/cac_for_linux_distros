@@ -4,13 +4,13 @@
 **Primary Language:** Python 3.10+ (orchestrator, entry points, distro abstraction)
 **System Operations:** Bash (`lib/*.sh`, `bash/*.sh` — invoked by Python via subprocess)
 **Source Reference:** `linux_cac/cac_setup.sh` (Bash, Debian/Ubuntu)
-**Work Directory:** `cachy_cac/` (sibling of `linux_cac/`)
+**Work Directory:** `cac_for_linux_distros/` (sibling of `linux_cac/`)
 **Purpose:** Configure CachyOS for DoW Common Access Card (CAC/smart card) authentication in web browsers via OpenSC, pcscd, NSS cert databases, and PKCS11 module registration. Phase 2 (planned) will provide a PyQt6 GUI application with installer, system tray indicator, and ActivClient-style smart card viewer. Phase 3 (planned) establishes GitHub Actions CI/CD. Phase 4 (planned) defines quarterly release cadence and GitHub Issue/PR management.
 
 ## Quick Start
 
 ```bash
-cd cachy_cac
+cd cac_for_linux_distros
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -84,13 +84,13 @@ Phase 4 is process, not code. Associated repository files are in `ci/` branches 
 
 ## Getting Started
 
-Before implementing any step, create the `cachy_cac/` directory at the repo root:
+Before implementing any step, create the `cac_for_linux_distros/` directory at the repo root:
 
 ```bash
-mkdir cachy_cac
+mkdir cac_for_linux_distros
 ```
 
-**Do not copy files from `linux_cac/`.** All implementation is written from scratch. The `linux_cac/cac_setup.sh` source is used only as a reference. The authoritative plan lives at `docs/PLAN.md` — do not copy it into `cachy_cac/`.
+**Do not copy files from `linux_cac/`.** All implementation is written from scratch. The `linux_cac/cac_setup.sh` source is used only as a reference. The authoritative plan lives at `docs/PLAN.md` — do not copy it into `cac_for_linux_distros/`.
 
 ---
 
@@ -207,8 +207,8 @@ sudo python3 cac_setup.py
               → lib/packages.sh, lib/service.sh, lib/certs.sh,
                 lib/browser.sh, lib/import.sh, lib/pkcs11.sh,
                 lib/verify.sh
-      → orchestrator/state.py         (writes /var/lib/cachy_cac/state.json)
-      → orchestrator/action_log.py    (writes /var/lib/cachy_cac/action_log.json)
+      → orchestrator/state.py         (writes /var/lib/cac_for_linux_distros/state.json)
+      → orchestrator/action_log.py    (writes /var/lib/cac_for_linux_distros/action_log.json)
 ```
 
 ### 0.2 Python–Bash Communication Contract
@@ -232,7 +232,7 @@ A single stdout line may carry only one prefix. Bash exits with a non-zero code 
 | `REAL_USER` | `SUDO_USER` env var | Non-root user context |
 | `REAL_HOME` | `getent passwd $REAL_USER` | Non-root home directory |
 | `NSS_DB_PATHS` | orchestrator after discovery phase | Colon-separated NSS database paths |
-| `STATE_FILE` | constant | `/var/lib/cachy_cac/state.json` |
+| `STATE_FILE` | constant | `/var/lib/cac_for_linux_distros/state.json` |
 
 `NSS_DB_PATHS` is populated by Python after the database discovery phase: Python captures `STATE:nss_databases=...` from the import phase output and injects `NSS_DB_PATHS` as a colon-separated list into all subsequent subprocess calls.
 
@@ -254,7 +254,7 @@ The `distros/debian/driver.py` stub exists from day one so the routing compiles 
 
 Every install action has a documented, explicit uninstall counterpart. The canonical reference is the symmetry table at the top of Section 4. Every developer adding a new install action must add a corresponding row to that table before the code is merged.
 
-State needed for complete reversal is stored in `/var/lib/cachy_cac/state.json` (structured JSON). The state file is written **incrementally** after each phase via an atomic `os.replace()` — if install fails partway through, the uninstall script reverses only what was actually completed.
+State needed for complete reversal is stored in `/var/lib/cac_for_linux_distros/state.json` (structured JSON). The state file is written **incrementally** after each phase via an atomic `os.replace()` — if install fails partway through, the uninstall script reverses only what was actually completed.
 
 ---
 
@@ -348,7 +348,7 @@ echo "ACTION:pkg_install|${pkg_name}|${pkg_version}|was_present_before=false"
 echo "ACTION:service_start|${PCSCD_UNIT}|was_active_before=${was_active}"
 ```
 
-The human-readable `[ACTION]` tag in `/var/log/cachy_cac_*.log` maps 1:1 to each `ActionRecord` in `action_log.json`.
+The human-readable `[ACTION]` tag in `/var/log/cac_for_linux_distros_*.log` maps 1:1 to each `ActionRecord` in `action_log.json`.
 
 ---
 
@@ -364,7 +364,7 @@ A snapshot captures **only what the application owns** — never system-level st
 
 #### 0.7.2 Snapshot Storage
 
-`/var/lib/cachy_cac/snapshots/<YYYYMMDD_HHMMSS>/snapshot.json`
+`/var/lib/cac_for_linux_distros/snapshots/<YYYYMMDD_HHMMSS>/snapshot.json`
 
 Multiple snapshots coexist. No automatic pruning — the user manages them via the GUI.
 
@@ -452,7 +452,7 @@ Writing to NSS databases (`cert9.db`, `pkcs11.txt`) while the owning browser pro
 ## 2. Project Structure
 
 ```
-cachy_cac/
+cac_for_linux_distros/
 ├── PLAN.md                  # This document
 ├── README.md                # User-facing setup instructions
 ├── KNOWN_ISSUES.md          # Documented test findings
@@ -689,7 +689,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 import json, os, time
 
-STATE_DIR = Path("/var/lib/cachy_cac")
+STATE_DIR = Path("/var/lib/cac_for_linux_distros")
 STATE_FILE = STATE_DIR / "state.json"
 
 @dataclass
@@ -803,13 +803,13 @@ Provides logging functions (`log_info`, `log_warn`, `log_error`, `log_success`, 
 
 **Key implementation details.**
 
-Log file path: `/var/log/cachy_cac_YYYYMMDD_HHMMSS.log` — timestamp captured at `log_init` call time using `date +%Y%m%d_%H%M%S`. Path stored in global `_CAC_LOG_FILE`.
+Log file path: `/var/log/cac_for_linux_distros_YYYYMMDD_HHMMSS.log` — timestamp captured at `log_init` call time using `date +%Y%m%d_%H%M%S`. Path stored in global `_CAC_LOG_FILE`.
 
 Color coding uses ANSI escape codes via `printf` with `readonly` constants so they degrade gracefully when output is redirected.
 
 ```bash
 #!/bin/bash
-# lib/log.sh — Logging infrastructure for cachy_cac
+# lib/log.sh — Logging infrastructure for cac_for_linux_distros
 
 # Guard each readonly to allow safe re-sourcing in BATS (setup() calls source before each test)
 [[ -v RED     ]] || readonly RED='\033[0;31m'
@@ -822,8 +822,8 @@ Color coding uses ANSI escape codes via `printf` with `readonly` constants so th
 _CAC_LOG_FILE=""
 
 log_init() {
-    _CAC_LOG_FILE="/var/log/cachy_cac_$(date +%Y%m%d_%H%M%S).log"
-    printf "# cachy_cac log — %s\n" "$(date)" > "$_CAC_LOG_FILE"
+    _CAC_LOG_FILE="/var/log/cac_for_linux_distros_$(date +%Y%m%d_%H%M%S).log"
+    printf "# cac_for_linux_distros log — %s\n" "$(date)" > "$_CAC_LOG_FILE"
     printf "# User: %s — Running as: %s\n" "${SUDO_USER:-}" "$(whoami)" >> "$_CAC_LOG_FILE"
     printf "\n" >> "$_CAC_LOG_FILE"
     log_info "Log file: $_CAC_LOG_FILE"
@@ -895,7 +895,7 @@ Exit codes (readonly):
 
 ```bash
 #!/bin/bash
-# lib/detect.sh — Environment validation for cachy_cac
+# lib/detect.sh — Environment validation for cac_for_linux_distros
 # OS/arch detection is handled by Python (distros/detect.py).
 # This module validates root context, real user, env vars, and required tools.
 
@@ -1269,7 +1269,7 @@ Downloads `AllCerts.zip` from militarycac.com, computes and logs its SHA-256 has
 
 `$$` (process PID) works natively in Bash and is used to create a unique staging directory:
 ```bash
-DWNLD_DIR="/tmp/cachy_cac_$$"
+DWNLD_DIR="/tmp/cac_for_linux_distros_$$"
 ```
 
 `mapfile` (a Bash built-in) safely populates an array from `find` output, handling filenames with spaces correctly:
@@ -1284,7 +1284,7 @@ mapfile -t CERT_FILES < <(find "$dest" -name "*.cer" -type f)
 readonly CERT_URL="https://militarycac.com/maccerts/AllCerts.zip"
 readonly BUNDLE_NAME="AllCerts.zip"
 readonly CERT_DIR_NAME="AllCerts"
-DWNLD_DIR="/tmp/cachy_cac_$$"
+DWNLD_DIR="/tmp/cac_for_linux_distros_$$"
 # Known-good SHA-256 of AllCerts.zip (update after each bundle refresh)
 # Run: sha256sum AllCerts.zip to obtain the current hash
 # Set to "" to skip hash check (warn but continue)
@@ -2008,9 +2008,9 @@ esac
 
 **Unit test approach (integration):**
 1. Run `sudo python3 cac_setup.py` end-to-end on a clean CachyOS system; verify all 7 phases complete and exit 0
-2. Verify `state.json` exists at `/var/lib/cachy_cac/state.json` with all fields populated
+2. Verify `state.json` exists at `/var/lib/cac_for_linux_distros/state.json` with all fields populated
 3. Verify `action_log.json` contains `ActionRecord` entries for every install action
-4. Verify the log file exists at `/var/log/cachy_cac_*.log` and contains the full session
+4. Verify the log file exists at `/var/log/cac_for_linux_distros_*.log` and contains the full session
 5. Run `sudo python3 cac_uninstall.py`; verify all state is reversed and `state.json` is removed
 
 ---
@@ -2018,7 +2018,7 @@ esac
 ### Step 12: User Documentation — `README.md`
 
 **What it does.**
-Creates the user-facing `README.md` for `cachy_cac/` that serves as the entry point for anyone cloning the project from scratch. This is a tracked deliverable, not an afterthought.
+Creates the user-facing `README.md` for `cac_for_linux_distros/` that serves as the entry point for anyone cloning the project from scratch. This is a tracked deliverable, not an afterthought.
 
 **Files created:** `README.md`
 
@@ -2056,7 +2056,7 @@ This reverses all changes and returns the system to pre-CAC state,
 ready for a fresh install test from a clean clone.
 
 ## Troubleshooting
-- See `/var/log/cachy_cac_*.log` for the full install log
+- See `/var/log/cac_for_linux_distros_*.log` for the full install log
 - If pcscd is not running: `systemctl start pcscd.socket`
 - If certificate dialog does not appear: reboot first, then retry
 - Known issues: see `KNOWN_ISSUES.md`
@@ -2065,7 +2065,7 @@ ready for a fresh install test from a clean clone.
 See the Assessment section of `PLAN.md` for a full comparison.
 ```
 
-**Unit test approach:** Verify the file exists at `cachy_cac/README.md` and contains the minimum required sections (Prerequisites, Installation, Uninstallation). A `grep` for each section header in a CI step is sufficient.
+**Unit test approach:** Verify the file exists at `cac_for_linux_distros/README.md` and contains the minimum required sections (Prerequisites, Installation, Uninstallation). A `grep` for each section header in a CI step is sufficient.
 
 ---
 
@@ -2079,14 +2079,14 @@ Every install action has a documented, explicit uninstall counterpart. Every dev
 |---|---|---|---|
 | 1 | `pacman -Syu` + install `required_packages` | `pacman -Rs` packages in `smart_card_packages` ∩ `packages_installed` (user-prompted; skip general-purpose packages like `wget`, `unzip`) | `state.packages_installed` — only packages not already present before install |
 | 2 | `systemctl enable pcscd.socket && systemctl start pcscd.socket` | `systemctl stop pcscd.socket pcscd.service && systemctl disable pcscd.socket` — **only if `pcscd_was_active_before == False`** | `state.pcscd_was_active_before` — captured by Python before the service phase |
-| 3 | Download `AllCerts.zip` → extract `.cer` to `/tmp/cachy_cac_$$` | Temp dir removed at end of install phase via `cleanup_certs` — no persistent uninstall action needed | N/A |
+| 3 | Download `AllCerts.zip` → extract `.cer` to `/tmp/cac_for_linux_distros_$$` | Temp dir removed at end of install phase via `cleanup_certs` — no persistent uninstall action needed | N/A |
 | 4 | `certutil -A -t TC -n <nickname> -i <cert_file>` in each NSS database | `certutil -D -n <nickname>` in each database listed in `nss_databases` | `state.nss_databases` + `state.imported_cert_nicknames` |
 | 5 | `modutil -add "CAC Module" -libfile <pkcs11_lib>` in each NSS database | `modutil -delete "CAC Module"` in each database listed in `pkcs11_registered_in` | `state.pkcs11_registered_in` |
 | 6 | `pkcs11-register` (supplemental, best-effort) | No uninstall action — `modutil -delete` above covers the databases it registered with; `pkcs11-register` has no "unregister" command | N/A |
 | 7 | Modify `/etc/opensc/opensc.conf` to add `card_drivers = cac` and `force_card_driver = cac` | Remove the added block from `/etc/opensc/opensc.conf` (restore backup if one was saved; otherwise remove the appended block) | `state.opensc_conf_modified: bool` |
 | 8 | Create Horizon symlinks (`/usr/lib/vmware/view/pkcs11/libopenscpkcs11.so`, `/usr/lib/omnissa/horizon/pkcs11/libopenscpkcs11.so`) — **only if Horizon is installed** | Remove symlinks if they were created by this tool — skip if the Horizon directory no longer exists | `state.horizon_symlinks_created: list[str]` |
-| 9 | Create `/var/lib/cachy_cac/state.json` | Delete `/var/lib/cachy_cac/state.json` and directory (user-prompted) | N/A |
-| 10 | Create `/var/log/cachy_cac_*.log` | Delete `/var/log/cachy_cac_*.log` (user-prompted) | N/A |
+| 9 | Create `/var/lib/cac_for_linux_distros/state.json` | Delete `/var/lib/cac_for_linux_distros/state.json` and directory (user-prompted) | N/A |
+| 10 | Create `/var/log/cac_for_linux_distros_*.log` | Delete `/var/log/cac_for_linux_distros_*.log` (user-prompted) | N/A |
 
 **Purpose:** Completely reverse all changes made by `cac_setup.py`. Designed to be run before fresh-install testing. All browsers must be closed before running. The uninstall script is safe to run multiple times (all operations are idempotent — each `ActionRecord` in `action_log.json` is marked `reversed=True` once completed; subsequent runs skip already-reversed actions).
 
@@ -2096,7 +2096,7 @@ Every install action has a documented, explicit uninstall counterpart. Every dev
 3. Removes DoD CA certificates from all NSS databases using `state.imported_cert_nicknames` for exact-match removal
 4. Stops and disables `pcscd.socket` and `pcscd.service` — **only if `state.pcscd_was_active_before == False`**
 5. Optionally removes installed packages (prompted — only packages in `state.packages_installed` ∩ `smart_card_packages`)
-6. Optionally removes log files at `/var/log/cachy_cac_*.log` and state directory at `/var/lib/cachy_cac/` (prompted)
+6. Optionally removes log files at `/var/log/cac_for_linux_distros_*.log` and state directory at `/var/lib/cac_for_linux_distros/` (prompted)
 7. Verifies clean state
 
 **Key implementation details.**
@@ -2119,7 +2119,7 @@ def main():
     try:
         state = InstallState.load()
     except FileNotFoundError:
-        print("[ERROR] No state file at /var/lib/cachy_cac/state.json")
+        print("[ERROR] No state file at /var/lib/cac_for_linux_distros/state.json")
         print("        If installed manually, see README.md for manual uninstall steps")
         sys.exit(1)
     _, driver = detect_distro()
@@ -2161,7 +2161,7 @@ esac
 
 The `--phase=all` mode is a **developer escape hatch** — requires the same manual env var exports as `bash/install.sh --phase=all`.
 
-**Certificate removal:** `certutil -D` requires an exact nickname match. The primary removal mechanism uses `state.imported_cert_nicknames` from `/var/lib/cachy_cac/state.json`, which records the exact nickname of every certificate imported during setup. The uninstall flow is idempotent: `certutil -D` on a nickname that no longer exists is treated as "already removed" (logged as a warning; execution continues).
+**Certificate removal:** `certutil -D` requires an exact nickname match. The primary removal mechanism uses `state.imported_cert_nicknames` from `/var/lib/cac_for_linux_distros/state.json`, which records the exact nickname of every certificate imported during setup. The uninstall flow is idempotent: `certutil -D` on a nickname that no longer exists is treated as "already removed" (logged as a warning; execution continues).
 
 ---
 
@@ -2324,7 +2324,7 @@ jobs:
 
 ### Location
 
-`/var/log/cachy_cac_YYYYMMDD_HHMMSS.log`
+`/var/log/cac_for_linux_distros_YYYYMMDD_HHMMSS.log`
 
 A new file is created for each run (setup or uninstall). The path is printed to the terminal at startup. Previous logs are preserved for comparison.
 
@@ -2340,7 +2340,7 @@ A new file is created for each run (setup or uninstall). The path is printed to 
 | `[EXIT]` | *(file only)* | Exit code of each `log_cmd` invocation |
 | `[ACTION]` | *(file only)* | Every atomic reversible action: cert import/remove, PKCS11 register/unregister, package install, service state change, file download, permission change |
 
-Every `[ACTION]` entry in the log file maps 1:1 to an `ActionRecord` in `/var/lib/cachy_cac/action_log.json`. The log file provides human-readable summaries; the JSON provides machine-parseable data for programmatic reversal.
+Every `[ACTION]` entry in the log file maps 1:1 to an `ActionRecord` in `/var/lib/cac_for_linux_distros/action_log.json`. The log file provides human-readable summaries; the JSON provides machine-parseable data for programmatic reversal.
 
 ### What is Logged
 
@@ -2358,13 +2358,13 @@ The following operations are logged as `[ACTION]` entries (and persisted as `Act
 
 ```bash
 # Most recent log
-cat "$(ls -t /var/log/cachy_cac_*.log | head -1)"
+cat "$(ls -t /var/log/cac_for_linux_distros_*.log | head -1)"
 
 # All logs
-ls -lh /var/log/cachy_cac_*.log
+ls -lh /var/log/cac_for_linux_distros_*.log
 
 # Errors and warnings only
-grep -E "\[ERROR\]|\[WARN\]" "$(ls -t /var/log/cachy_cac_*.log | head -1)"
+grep -E "\[ERROR\]|\[WARN\]" "$(ls -t /var/log/cac_for_linux_distros_*.log | head -1)"
 ```
 
 Log files are written by root but world-readable (permissions `0644`) so the regular user can inspect them without sudo.
@@ -2620,7 +2620,7 @@ The `CI_INTEGRATION` environment variable gates integration tests: the `integrat
 
 **Job ordering:** `bash-syntax` and `shellcheck` run in parallel as independent fast checks. `bats-unit` depends on both `bash-syntax` and `shellcheck` so that syntax or linting failures gate test execution — running tests on malformed files wastes runner time and produces misleading output. `python-lint` and `python-tests` run independently of the Bash jobs.
 
-**Working directory note:** All jobs use `working-directory: cachy_cac` (relative to the repository root) because scripts live in `cachy_cac/lib/` and `cachy_cac/bash/`, not at the repository root.
+**Working directory note:** All jobs use `working-directory: cac_for_linux_distros` (relative to the repository root) because scripts live in `cac_for_linux_distros/lib/` and `cac_for_linux_distros/bash/`, not at the repository root.
 
 **Planned file:** `.github/workflows/ci.yml`
 
@@ -2640,7 +2640,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - name: Syntax check
@@ -2650,7 +2650,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - name: ShellCheck
@@ -2662,7 +2662,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -2682,7 +2682,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -2697,7 +2697,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - name: Install bats-core
@@ -2727,7 +2727,7 @@ jobs:
 
 **Changelog:** Release notes are written manually in the GitHub Release body. A `CHANGELOG.md` file at the repository root maintains the same content in a persistent, browsable form. There is no automated changelog generation tool — the curator writes a short, human-readable summary of changes for each release. The `CHANGELOG.md` entry for a release is merged as part of the release commit, before the tag is pushed.
 
-**Branch protection requirement:** `release.yml` must only fire from `main`. Branch protection rules on `main` require all `ci.yml` checks to pass before merge. This is configured in GitHub repository settings, not in the workflow file. Document the required branch protection settings in `CONTRIBUTING.md` (a Phase 3 deliverable, added to `cachy_cac/` when Phase 3 is implemented).
+**Branch protection requirement:** `release.yml` must only fire from `main`. Branch protection rules on `main` require all `ci.yml` checks to pass before merge. This is configured in GitHub repository settings, not in the workflow file. Document the required branch protection settings in `CONTRIBUTING.md` (a Phase 3 deliverable, added to `cac_for_linux_distros/` when Phase 3 is implemented).
 
 **Planned file:** `.github/workflows/release.yml`
 
@@ -2754,13 +2754,13 @@ jobs:
       - name: Build archive
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          # .github/ is at the repository root, not inside cachy_cac/, so no
-          # explicit exclude is needed for it — only cachy_cac/ is archived.
-          tar --exclude='cachy_cac/tests' \
+          # .github/ is at the repository root, not inside cac_for_linux_distros/, so no
+          # explicit exclude is needed for it — only cac_for_linux_distros/ is archived.
+          tar --exclude='cac_for_linux_distros/tests' \
               --exclude='*/__pycache__' \
               --exclude='*.pyc' \
-              -czf "cachy_cac-${VERSION}.tar.gz" cachy_cac/
-          sha256sum "cachy_cac-${VERSION}.tar.gz" > SHA256SUMS
+              -czf "cac_for_linux_distros-${VERSION}.tar.gz" cac_for_linux_distros/
+          sha256sum "cac_for_linux_distros-${VERSION}.tar.gz" > SHA256SUMS
           # Extract the Unreleased section from CHANGELOG.md as the release body
           sed -n '/^## \[Unreleased\]/,/^## \[/p' CHANGELOG.md \
             | sed '1d;$d' > RELEASE_NOTES.md
@@ -2770,7 +2770,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            cachy_cac-*.tar.gz
+            cac_for_linux_distros-*.tar.gz
             SHA256SUMS
           body_path: RELEASE_NOTES.md
 ```
@@ -3411,9 +3411,9 @@ Each issue: **Symptom** → **Likely Cause** → **Resolution steps**. Content d
 
 #### `log_files.md`
 
-- Log location: `/var/log/cachy_cac_YYYYMMDD_HHMMSS.log` (one per run)
+- Log location: `/var/log/cac_for_linux_distros_YYYYMMDD_HHMMSS.log` (one per run)
 - Access from GUI: Log Viewer panel in the main window (Phase 2 feature)
-- Access from CLI: `cat "$(ls -t /var/log/cachy_cac_*.log | head -1)"`; filter errors: `grep '\[ERROR\]\|\[WARN\]' <logfile>`
+- Access from CLI: `cat "$(ls -t /var/log/cac_for_linux_distros_*.log | head -1)"`; filter errors: `grep '\[ERROR\]\|\[WARN\]' <logfile>`
 - Log tag meanings (cross-reference Section 6 of this plan document)
 - Privacy note: log files contain file paths, package names, command output, and certificate nicknames. They do not contain PIN values, card serial numbers, private key material, or personally identifiable information. Safe to share in full for support purposes.
 - What to include in a bug report: log file, `opensc-tool --list-readers` output, `pacman -Q opensc pcsclite nss ccid` output, and a description of the exact step where the failure occurred.
@@ -3422,7 +3422,7 @@ Each issue: **Symptom** → **Likely Cause** → **Resolution steps**. Content d
 
 - What a snapshot captures: the current set of certificate registrations and PKCS11 module registrations in every NSS database. Does not capture packages, service state, or log files.
 - When to use: before manually editing NSS databases; before a system update that may touch OpenSC or pcsclite; as a recovery point before experimenting with configuration changes.
-- Creating: Snapshots panel → "Create Snapshot" → enter a label → confirm. Saved to `/var/lib/cachy_cac/snapshots/`.
+- Creating: Snapshots panel → "Create Snapshot" → enter a label → confirm. Saved to `/var/lib/cac_for_linux_distros/snapshots/`.
 - Restoring: Snapshots panel → select snapshot → "Restore" → confirm. Diff-based: adds certificates and modules that are in the snapshot but missing from the current state; removes certificates and modules present in the current state but not in the snapshot. Never modifies packages or services.
 - Deleting: Snapshots panel → select → "Delete". Removal is permanent.
 - Difference from full reinstall: use a snapshot for cert/PKCS11 configuration drift; use uninstall + reinstall for full package-level reset.
@@ -3442,7 +3442,7 @@ Additional shortcuts are documented here as Phase 2 main window design is finali
 
 #### `about.md`
 
-- Application name and version string (loaded at runtime from `cachy_cac.__version__`)
+- Application name and version string (loaded at runtime from `cac_for_linux_distros.__version__`)
 - License: MIT
 - Credits: upstream `linux_cac` project; OpenSC project; DoD PKI certificate authorities
 - GitHub repository URL
@@ -3497,7 +3497,7 @@ This section audits the complete set of GitHub Actions workflows, repository con
     container: archlinux:latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - name: Install Arch dependencies
@@ -3571,7 +3571,7 @@ labels: bug, needs-triage
 ## Actual Result
 
 ## Log File
-<!-- Paste the relevant portion of /var/log/cachy_cac_*.log (errors and warnings) -->
+<!-- Paste the relevant portion of /var/log/cac_for_linux_distros_*.log (errors and warnings) -->
 <!-- Full log is safe to share — it contains no PIN values or private key material -->
 
 ## Additional Context
@@ -3607,7 +3607,7 @@ labels: enhancement, needs-triage
 blank_issues_enabled: false
 contact_links:
   - name: Ask a Question
-    url: https://github.com/<owner>/cachy-cac/discussions
+    url: https://github.com/<owner>/cac_for_linux_distros/discussions
     about: Use GitHub Discussions for questions and general support
 ```
 
@@ -3658,10 +3658,10 @@ Closes #
 .github/workflows/          @<github-username>
 
 # Security-sensitive files — require explicit review
-cachy_cac/lib/certs.sh      @<github-username>
-cachy_cac/lib/import.sh     @<github-username>
-cachy_cac/lib/pkcs11.sh     @<github-username>
-cachy_cac/orchestrator/runner.py  @<github-username>
+cac_for_linux_distros/lib/certs.sh      @<github-username>
+cac_for_linux_distros/lib/import.sh     @<github-username>
+cac_for_linux_distros/lib/pkcs11.sh     @<github-username>
+cac_for_linux_distros/orchestrator/runner.py  @<github-username>
 ```
 
 Replace `@<github-username>` with the repository owner's GitHub handle when creating the file.
@@ -3764,7 +3764,7 @@ Repository → Security tab → "Report a vulnerability"
 Please include:
 - A description of the vulnerability
 - Steps to reproduce
-- The version of cachy-cac affected
+- The version of cac_for_linux_distros affected
 - Any relevant log output (redacted as needed)
 
 Security reports are acknowledged within 72 hours. A fix is targeted within
@@ -3823,8 +3823,8 @@ Versioning: [Semantic Versioning](https://semver.org/)
 ### Added
 - Initial release: Phase 1 CLI setup and uninstall for CachyOS
 
-[Unreleased]: https://github.com/<owner>/cachy-cac/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/<owner>/cachy-cac/releases/tag/v1.0.0
+[Unreleased]: https://github.com/<owner>/cac_for_linux_distros/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/<owner>/cac_for_linux_distros/releases/tag/v1.0.0
 ```
 
 The `CHANGELOG.md` entry for each release is committed as part of the release commit (before the tag is pushed), consistent with the process described in Section 9.4.
@@ -3835,27 +3835,27 @@ The `CHANGELOG.md` entry for each release is committed as part of the release co
 
 A single authoritative version string must be defined and kept consistent across the codebase, the git tag, and `CHANGELOG.md`.
 
-**Authoritative location:** `cachy_cac/version.py`
+**Authoritative location:** `cac_for_linux_distros/version.py`
 
 ```python
 __version__ = "1.0.0"
 ```
 
-All other references derive from this. Because `cac_setup.py` and `cac_uninstall.py` use `sys.path.insert(0, str(Path(__file__).parent))` to treat `cachy_cac/` as the root, the correct import form inside those files is:
+All other references derive from this. Because `cac_setup.py` and `cac_uninstall.py` use `sys.path.insert(0, str(Path(__file__).parent))` to treat `cac_for_linux_distros/` as the root, the correct import form inside those files is:
 - `cac_setup.py` and `cac_uninstall.py`: `from version import __version__`
 - Phase 2 GUI entry point (`gui/main.py`): same — `from version import __version__`
 - Phase 5 Help `about.md` description: loaded at runtime via `from version import __version__`
 
-Do not use `from cachy_cac.version import __version__` — that form requires `cachy_cac` to be an installed package, which it is not in the current entry-point model.
+Do not use `from cac_for_linux_distros.version import __version__` — that form requires `cac_for_linux_distros` to be an installed package, which it is not in the current entry-point model.
 
 **Version bump process** (manual; no automated bump tool):
-1. Edit `cachy_cac/version.py` — update `__version__`
+1. Edit `cac_for_linux_distros/version.py` — update `__version__`
 2. Edit `CHANGELOG.md` — move `[Unreleased]` content to a new versioned section; update comparison links
 3. Commit: `git commit -m "chore: release vX.Y.Z"`
 4. Tag: `git tag vX.Y.Z`
 5. Push tag: `git push origin vX.Y.Z` — triggers `release.yml`
 
-**Consistency check:** Add a test in `tests/test_orchestrator/test_version.py`. Because CI runs with `working-directory: cachy_cac`, the correct import inside the test is `import version; assert re.match(r'^\d+\.\d+\.\d+$', version.__version__)`. Do not use `from cachy_cac.version import` inside the test. This test is automatically run by the `python-tests` CI job via `unittest discover`.
+**Consistency check:** Add a test in `tests/test_orchestrator/test_version.py`. Because CI runs with `working-directory: cac_for_linux_distros`, the correct import inside the test is `import version; assert re.match(r'^\d+\.\d+\.\d+$', version.__version__)`. Do not use `from cac_for_linux_distros.version import` inside the test. This test is automatically run by the `python-tests` CI job via `unittest discover`.
 
 ---
 
@@ -3870,14 +3870,14 @@ repos:
     hooks:
       - id: shellcheck
         args: ["-x"]
-        files: ^cachy_cac/(lib|bash)/.*\.sh$
+        files: ^cac_for_linux_distros/(lib|bash)/.*\.sh$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
     hooks:
       - id: ruff
         args: ["--fix"]
-        files: ^cachy_cac/.*\.py$
+        files: ^cac_for_linux_distros/.*\.py$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -3887,7 +3887,7 @@ repos:
       - id: check-yaml
         files: ^\.github/.*\.yml$
       - id: check-json
-        files: ^cachy_cac/gui/help/index\.json$
+        files: ^cac_for_linux_distros/gui/help/index\.json$
 ```
 
 **Note:** Pre-commit hooks run locally and are not enforced by CI (CI runs the same checks independently). They are a developer convenience, not a CI gate. Running `pre-commit run --all-files` should produce no failures on a clean branch — treat violations from pre-commit as equivalent to CI failures.
@@ -3911,7 +3911,7 @@ Add a version matrix to the `python-tests` job:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cachy_cac
+        working-directory: cac_for_linux_distros
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -3935,7 +3935,7 @@ Test results and coverage data should be uploaded as GitHub Actions artifacts fo
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.python-version || 'default' }}
-          path: cachy_cac/test-results/
+          path: cac_for_linux_distros/test-results/
           retention-days: 14
 ```
 
@@ -3974,23 +3974,23 @@ Document this table in `CONTRIBUTING.md` for repository administrators.
 | `~/.config/mozilla/firefox/*/pkcs11.txt` | Live example of correct `modutil` registration format |
 | `~/.pki/nssdb/pkcs11.txt` | Live example of Chromium shared NSS database structure |
 | `linux_cac/.github/workflows/CI.yml` | Source CI to adapt for Bash/shellcheck/BATS |
-| `cachy_cac/.github/workflows/ci.yml` | Phase 3 CI workflow (planned — not yet created; skeleton in Section 9.3 + 12.1) |
-| `cachy_cac/.github/workflows/release.yml` | Phase 3 release automation workflow (planned — not yet created; see Section 9.4) |
-| `cachy_cac/.github/workflows/stale.yml` | Phase 4 stale issue/PR automation (planned — skeleton in Section 12.6) |
-| `cachy_cac/.github/ISSUE_TEMPLATE/bug_report.md` | Bug report template (planned — template in Section 12.3) |
-| `cachy_cac/.github/ISSUE_TEMPLATE/feature_request.md` | Feature request template (planned — template in Section 12.3) |
-| `cachy_cac/.github/pull_request_template.md` | PR checklist template (planned — template in Section 12.3) |
-| `cachy_cac/.github/CODEOWNERS` | Review assignment (planned — template in Section 12.4) |
-| `cachy_cac/.github/dependabot.yml` | Dependabot Actions version bumps (planned — skeleton in Section 12.5) |
-| `cachy_cac/tests/mocks/` | BATS mock stubs for system commands (planned — not yet created; see Section 9.2) |
-| `cachy_cac/version.py` | Authoritative version string (planned — see Section 12.10) |
+| `cac_for_linux_distros/.github/workflows/ci.yml` | Phase 3 CI workflow (planned — not yet created; skeleton in Section 9.3 + 12.1) |
+| `cac_for_linux_distros/.github/workflows/release.yml` | Phase 3 release automation workflow (planned — not yet created; see Section 9.4) |
+| `cac_for_linux_distros/.github/workflows/stale.yml` | Phase 4 stale issue/PR automation (planned — skeleton in Section 12.6) |
+| `cac_for_linux_distros/.github/ISSUE_TEMPLATE/bug_report.md` | Bug report template (planned — template in Section 12.3) |
+| `cac_for_linux_distros/.github/ISSUE_TEMPLATE/feature_request.md` | Feature request template (planned — template in Section 12.3) |
+| `cac_for_linux_distros/.github/pull_request_template.md` | PR checklist template (planned — template in Section 12.3) |
+| `cac_for_linux_distros/.github/CODEOWNERS` | Review assignment (planned — template in Section 12.4) |
+| `cac_for_linux_distros/.github/dependabot.yml` | Dependabot Actions version bumps (planned — skeleton in Section 12.5) |
+| `cac_for_linux_distros/tests/mocks/` | BATS mock stubs for system commands (planned — not yet created; see Section 9.2) |
+| `cac_for_linux_distros/version.py` | Authoritative version string (planned — see Section 12.10) |
 | `SECURITY.md` | Vulnerability reporting policy (planned — template in Section 12.7) |
 | `CONTRIBUTING.md` | Contribution guidelines and branch protection settings (planned — outline in Section 12.8) |
 | `CHANGELOG.md` | Keep a Changelog format; updated on each release (planned — format in Section 12.9) |
 | `.pre-commit-config.yaml` | Local developer pre-commit hooks mirroring CI (planned — skeleton in Section 12.11) |
-| `cachy_cac/gui/help/help_dialog.py` | Phase 5 HelpDialog class (planned — spec in Section 11.4) |
-| `cachy_cac/gui/help/index.json` | Help topic TOC (planned — schema in Section 11.3) |
-| `cachy_cac/gui/help/content/` | Help Markdown source files (planned — outline in Section 11.5) |
-| `cachy_cac/gui/main.py` | Phase 2 entry point (placeholder — not yet created) |
-| `cachy_cac/gui/indicator.py` | Phase 2 system tray integration (placeholder — not yet created) |
-| `cachy_cac/gui/requirements.txt` | Phase 2 Python package dependencies (placeholder — not yet created) |
+| `cac_for_linux_distros/gui/help/help_dialog.py` | Phase 5 HelpDialog class (planned — spec in Section 11.4) |
+| `cac_for_linux_distros/gui/help/index.json` | Help topic TOC (planned — schema in Section 11.3) |
+| `cac_for_linux_distros/gui/help/content/` | Help Markdown source files (planned — outline in Section 11.5) |
+| `cac_for_linux_distros/gui/main.py` | Phase 2 entry point (placeholder — not yet created) |
+| `cac_for_linux_distros/gui/indicator.py` | Phase 2 system tray integration (placeholder — not yet created) |
+| `cac_for_linux_distros/gui/requirements.txt` | Phase 2 Python package dependencies (placeholder — not yet created) |
