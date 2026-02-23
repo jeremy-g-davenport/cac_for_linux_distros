@@ -26,10 +26,9 @@ Access requests that skip this step will be closed without review.
 
 ## Development Environment
 
-All development happens inside `cac_for_linux_distros/`. Work in a Python virtual environment:
+All development happens in the repository root. Work in a Python virtual environment:
 
 ```bash
-cd cac_for_linux_distros
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -96,7 +95,7 @@ closed until brought into alignment.
 
 ## Running Tests and Lint
 
-Run these from `cac_for_linux_distros/` with the venv active:
+Run these from the repository root with the venv active:
 
 ```bash
 # Lint

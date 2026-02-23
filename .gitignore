@@ -8,8 +8,7 @@ PLAN.md
 # Local-only working files
 KNOWN_ISSUES.md
 
-# Project source directories (excluded linux_cac fork, and cac_for_linux_distros planning documents)
-cac_for_linux_distros/
+# Upstream reference fork (local only — not part of this project's tracked code)
 linux_cac/
 
 # OS / editor artifacts
