@@ -1,0 +1,3 @@
+#!/bin/bash
+# tests/mocks/pkcs11-register — Silent stub.
+exit "${MOCK_PKCS11_REGISTER_EXIT:-0}"

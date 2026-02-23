@@ -1,0 +1,23 @@
+#!/bin/bash
+# tests/mocks/wget — Configurable stub.
+# Set MOCK_WGET_LOG     to record invocations.
+# Set MOCK_WGET_FIXTURE to a file path; it will be copied to the -P output directory.
+# Set MOCK_WGET_EXIT    (default 0)
+echo "wget $*" >> "${MOCK_WGET_LOG:-/dev/null}"
+# Extract -P <dir> argument
+outdir="."
+prev_is_P=""
+for arg in "$@"; do
+    if [[ -n "$prev_is_P" ]]; then
+        outdir="$arg"
+        break
+    fi
+    [[ "$arg" == "-P" ]] && prev_is_P=1
+done
+if [[ -n "${MOCK_WGET_FIXTURE:-}" ]]; then
+    cp "$MOCK_WGET_FIXTURE" "$outdir/AllCerts.zip"
+else
+    # Create a placeholder file so download_certs log_success check passes
+    touch "$outdir/AllCerts.zip"
+fi
+exit "${MOCK_WGET_EXIT:-0}"

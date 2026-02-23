@@ -1,0 +1,14 @@
+#!/bin/bash
+# tests/mocks/certutil — Configurable stub.
+# Set MOCK_CERTUTIL_LOG          to record invocations.
+# Set MOCK_CERTUTIL_LIST_OUTPUT  to control `certutil -L` output (multi-line, default: empty)
+# Set MOCK_CERTUTIL_LOOKUP_EXIT  to control -L -n <nick> exit (default 0 = found)
+# Set MOCK_CERTUTIL_EXIT         (default 0) for all other subcommands
+echo "certutil $*" >> "${MOCK_CERTUTIL_LOG:-/dev/null}"
+if [[ "$*" == *"-L"* ]] && [[ "$*" == *"-n"* ]]; then
+    # Nickname lookup — controls whether cert is "present" for skip/delete checks
+    exit "${MOCK_CERTUTIL_LOOKUP_EXIT:-0}"
+elif [[ "$*" == *"-L"* ]]; then
+    printf '%s\n' "${MOCK_CERTUTIL_LIST_OUTPUT:-}"
+fi
+exit "${MOCK_CERTUTIL_EXIT:-0}"

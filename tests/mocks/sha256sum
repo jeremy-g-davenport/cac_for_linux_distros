@@ -1,0 +1,5 @@
+#!/bin/bash
+# tests/mocks/sha256sum — Returns a configurable checksum.
+# Set MOCK_SHA256 to override the returned hash (default: all-zeros placeholder)
+echo "${MOCK_SHA256:-0000000000000000000000000000000000000000000000000000000000000000}  ${*: -1}"
+exit 0

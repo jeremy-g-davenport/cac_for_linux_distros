@@ -1,0 +1,16 @@
+#!/bin/bash
+# tests/mocks/pacman — Configurable stub.
+# Set MOCK_PACMAN_LOG to record invocations.
+# Set MOCK_PACMAN_QI_EXIT  (default 0) to control -Qi (is_package_installed)
+# Set MOCK_PACMAN_SYU_EXIT (default 0) to control -Syu
+# Set MOCK_PACMAN_S_EXIT   (default 0) to control -S
+# Set MOCK_PACMAN_RS_EXIT  (default 0) to control -Rs
+# Set MOCK_PACMAN_EXIT     (default 0) for all other subcommands
+echo "pacman $*" >> "${MOCK_PACMAN_LOG:-/dev/null}"
+case "$*" in
+    *-Qi*)  exit "${MOCK_PACMAN_QI_EXIT:-0}" ;;
+    *-Syu*) exit "${MOCK_PACMAN_SYU_EXIT:-0}" ;;
+    *-Rs*)  exit "${MOCK_PACMAN_RS_EXIT:-0}" ;;
+    *-S*)   exit "${MOCK_PACMAN_S_EXIT:-0}" ;;
+    *)      exit "${MOCK_PACMAN_EXIT:-0}" ;;
+esac
