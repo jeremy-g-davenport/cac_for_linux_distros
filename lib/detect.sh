@@ -1,6 +1,10 @@
 #!/bin/bash
 # lib/detect.sh — Environment validation for cac_for_linux_distros
 #
+# Provides: validate_env, detect_root, detect_real_user, detect_required_tools,
+#           detect_post_install_tools, detect_conflicting_modules, detect_to_json,
+#           _state_read_list, remove_state_and_logs
+#
 # OS/arch detection is handled by Python (distros/detect.py). All distro-specific
 # values (PKCS11_LIB, PCSCD_UNIT, REAL_USER, REAL_HOME, STATE_FILE) arrive as
 # environment variables injected by the Python orchestrator before every Bash
@@ -99,4 +103,56 @@ detect_to_json() {
     # Python calls this to confirm Bash sees the injected environment correctly.
     printf '{"arch":"%s","user":"%s","pkcs11_lib":"%s"}\n' \
         "$(uname -m)" "${REAL_USER:-}" "${PKCS11_LIB:-}"
+}
+
+_state_read_list() {
+    # Usage: _state_read_list <json_key>
+    # Reads a JSON array from $STATE_FILE, printing one item per line.
+    # Silent no-op if STATE_FILE is missing, unreadable, or the key is absent.
+    python3 -c "
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    [print(i) for i in d.get(sys.argv[2], []) if i]
+except Exception:
+    pass
+" "$STATE_FILE" "$1" 2>/dev/null || true
+}
+
+remove_state_and_logs() {
+    # Remove Horizon symlinks, log files, and the state directory.
+    # Must be called LAST in the uninstall sequence — state is gone after this.
+    # Horizon symlinks are identified by the constants in lib/verify.sh (sourced
+    # before this function is invoked).
+    log_section "Cleanup: State and Logs"
+
+    # Remove Horizon symlinks if they are symlinks created by this tool
+    local link
+    for link in "${VMWARE_HORIZON_PKCS11:-}" "${OMNISSA_HORIZON_PKCS11:-}"; do
+        [[ -z "$link" ]] && continue
+        if [[ -L "$link" ]]; then
+            rm -f "$link"
+            log_success "Removed Horizon symlink: $link"
+            echo "ACTION:horizon_symlink_removed|$link"
+        fi
+    done
+
+    # Remove log files
+    local log_file
+    for log_file in /var/log/cac_for_linux_distros_*.log; do
+        [[ -f "$log_file" ]] || continue
+        rm -f "$log_file"
+        log_success "Removed log: $log_file"
+    done
+
+    # Remove state directory last (can no longer read state after this)
+    local state_dir="/var/lib/cac_for_linux_distros"
+    if [[ -d "$state_dir" ]]; then
+        rm -rf "$state_dir"
+        log_success "Removed state directory: $state_dir"
+    else
+        log_info "State directory already absent: $state_dir"
+    fi
+
+    log_success "Cleanup complete."
 }

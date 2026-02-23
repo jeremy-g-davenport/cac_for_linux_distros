@@ -3,7 +3,7 @@
 #
 # Provides: verify_pcscd, verify_pkcs11_registered, verify_certificates_imported,
 #           verify_card_reader, verify_card_objects, run_verification,
-#           configure_horizon_symlink
+#           configure_horizon_symlink, run_uninstall_verification
 #
 # NSS OWNERSHIP RULE (enforced without exception):
 # All certutil and modutil calls MUST run as $REAL_USER via `sudo -H -u "$REAL_USER"`.
@@ -137,6 +137,46 @@ run_verification() {
     else
         log_warn "Some checks failed — review: $_CAC_LOG_FILE"
         log_warn "A reboot may still resolve these issues."
+    fi
+}
+
+run_uninstall_verification() {
+    # Verify that the uninstall completed cleanly.
+    # Checks common NSS database locations directly (does not rely on $STATE_FILE,
+    # which may have been removed by remove_state_and_logs before this runs).
+    log_section "Uninstall Verification"
+    local issues=0
+
+    # Check common NSS database locations for lingering PKCS11 registration
+    local check_dbs=()
+    [[ -d "$REAL_HOME/.pki/nssdb" ]] && check_dbs+=("$REAL_HOME/.pki/nssdb")
+    local ff_db
+    while IFS= read -r ff_db; do
+        [[ -n "$ff_db" ]] && check_dbs+=("$(dirname "$ff_db")")
+    done < <(find "$REAL_HOME/.config/mozilla/firefox" \
+                  "$REAL_HOME/.mozilla/firefox" \
+                  -name cert9.db 2>/dev/null | grep -v Trash || true)
+
+    local db_dir
+    for db_dir in "${check_dbs[@]}"; do
+        if sudo -H -u "$REAL_USER" modutil \
+                -dbdir "sql:$db_dir" -list 2>/dev/null | grep -qi "CAC Module"; then
+            log_warn "  PKCS11 module still registered in: $db_dir"
+            (( issues++ ))
+        fi
+    done
+
+    # Check pcscd is not active
+    if systemctl is-active --quiet pcscd.socket 2>/dev/null; then
+        log_warn "  pcscd.socket is still active"
+        (( issues++ ))
+    fi
+
+    if [[ $issues -eq 0 ]]; then
+        log_success "Uninstall verification passed."
+    else
+        log_warn "$issues issue(s) found — some components may still be configured."
+        log_warn "Review log for details: $_CAC_LOG_FILE"
     fi
 }
 

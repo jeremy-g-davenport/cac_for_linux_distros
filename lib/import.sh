@@ -1,7 +1,7 @@
 #!/bin/bash
 # lib/import.sh — DoD certificate import into NSS databases
 #
-# Provides: import_certs_into_db, import_all_certs
+# Provides: import_certs_into_db, import_all_certs, remove_all_certs
 #
 # NSS OWNERSHIP RULE (enforced without exception):
 # All certutil calls MUST run as $REAL_USER via `sudo -H -u "$REAL_USER"`.
@@ -97,4 +97,48 @@ import_all_certs() {
     done
 
     log_success "Certificate import phase complete."
+}
+
+remove_all_certs() {
+    # Remove DoD CA certificates from all NSS databases listed in state.
+    # Reads nss_databases and imported_cert_nicknames from $STATE_FILE via
+    # _state_read_list (defined in lib/detect.sh).
+    # Uses exact nickname match from state — safe to run multiple times (idempotent).
+    # Must run certutil as $REAL_USER (NSS ownership rule).
+    log_section "Certificate Removal"
+
+    local nss_dbs=() nicknames=()
+    mapfile -t nss_dbs   < <(_state_read_list "nss_databases")
+    mapfile -t nicknames < <(_state_read_list "imported_cert_nicknames")
+
+    if [[ ${#nss_dbs[@]} -eq 0 ]] || [[ ${#nicknames[@]} -eq 0 ]]; then
+        log_info "No certificate removal entries found in state — nothing to do."
+        return 0
+    fi
+
+    local db_dir nick
+    for db_dir in "${nss_dbs[@]}"; do
+        [[ -z "$db_dir" ]] && continue
+        if [[ ! -d "$db_dir" ]]; then
+            log_info "NSS database absent (already removed?): $db_dir"
+            continue
+        fi
+        log_info "Removing certificates from: $db_dir"
+        local removed=0 skipped=0
+        for nick in "${nicknames[@]}"; do
+            [[ -z "$nick" ]] && continue
+            if sudo -H -u "$REAL_USER" certutil \
+                    -d "sql:$db_dir" -L -n "$nick" > /dev/null 2>&1; then
+                sudo -H -u "$REAL_USER" certutil \
+                    -d "sql:$db_dir" -D -n "$nick" >> "$_CAC_LOG_FILE" 2>&1 || true
+                (( removed++ ))
+            else
+                (( skipped++ ))
+            fi
+        done
+        log_success "  Removed $removed cert(s), skipped $skipped (already absent)"
+        echo "ACTION:certs_removed|$db_dir|count=$removed"
+    done
+
+    log_success "Certificate removal phase complete."
 }
