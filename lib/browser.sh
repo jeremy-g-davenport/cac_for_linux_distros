@@ -54,7 +54,7 @@ _ensure_firefox_profile() {
                           -name cert9.db 2>/dev/null | grep -v Trash | head -1 || true)"
             [[ -n "$ff_db" ]] && break
             sleep 0.5
-            (( waited++ ))
+            (( ++waited ))
         done
         kill "$ff_pid" 2>/dev/null || true
         if [[ -z "$ff_db" ]]; then
@@ -85,7 +85,7 @@ check_for_chromium_browsers() {
     for browser in google-chrome chromium microsoft-edge-stable brave; do
         if command -v "$browser" > /dev/null 2>&1; then
             log_success "Found: $browser"
-            (( found_count++ ))
+            (( ++found_count ))
         fi
     done
     if [[ $found_count -gt 0 ]]; then

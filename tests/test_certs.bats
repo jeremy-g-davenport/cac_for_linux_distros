@@ -32,7 +32,8 @@ teardown() {
     mkdir -p "$DWNLD_DIR"
     touch "$DWNLD_DIR/AllCerts.zip"
     local expected_hash="abcd1234"
-    MOCK_SHA256="$expected_hash" output="$(validate_cert_bundle)"
+    export MOCK_SHA256="$expected_hash"
+    output="$(validate_cert_bundle)"
     [[ "$output" == *"STATE:cert_bundle_sha256=${expected_hash}"* ]]
 }
 

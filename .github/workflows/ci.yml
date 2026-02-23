@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install bats-core from source
         run: |
-          git clone https://github.com/bats-core/bats-core.git /tmp/bats
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
           sudo /tmp/bats/install.sh /usr/local
       - name: Run BATS unit tests with mocked system commands
         run: bats tests/*.bats
@@ -80,6 +80,6 @@ jobs:
       - name: Install Arch dependencies (full sync + upgrade)
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm bash bats nss pcsclite opensc
+          pacman -S --noconfirm bash bats nss pcsclite opensc python
       - name: Run BATS unit tests against real Arch binaries
         run: bats tests/*.bats
