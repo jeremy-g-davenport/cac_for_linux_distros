@@ -48,10 +48,10 @@ verify_pkcs11_registered() {
         if sudo -H -u "$REAL_USER" modutil \
                 -dbdir "sql:$db_dir" -list 2>/dev/null | grep -qi "opensc-pkcs11"; then
             log_success "  Registered: $db_dir"
-            (( ok++ ))
+            (( ++ok ))
         else
             log_error "  NOT registered: $db_dir"
-            (( bad++ ))
+            (( ++bad ))
         fi
     done
     [[ $bad -eq 0 ]]
@@ -162,7 +162,7 @@ run_uninstall_verification() {
         if sudo -H -u "$REAL_USER" modutil \
                 -dbdir "sql:$db_dir" -list 2>/dev/null | grep -qi "CAC Module"; then
             log_warn "  PKCS11 module still registered in: $db_dir"
-            (( issues++ ))
+            (( ++issues ))
         fi
     done
 

@@ -16,7 +16,7 @@ teardown() {
 }
 
 @test "record_pcscd_state emits STATE:pcscd_was_active_before=false when inactive" {
-    MOCK_SYSTEMCTL_ACTIVE=1  # non-zero = not active
+    export MOCK_SYSTEMCTL_ACTIVE=1  # non-zero = not active
     output="$(record_pcscd_state)"
     [[ "$output" == *"STATE:pcscd_was_active_before=false"* ]]
 }

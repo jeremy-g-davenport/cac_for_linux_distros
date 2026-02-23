@@ -55,7 +55,7 @@ import_certs_into_db() {
         # Skip if already present — must run as $REAL_USER (NSS ownership rule)
         if sudo -H -u "$REAL_USER" certutil \
                 -d "sql:$db_dir" -L -n "$cert_name" > /dev/null 2>&1; then
-            (( skipped++ ))
+            (( ++skipped ))
             continue
         fi
 
@@ -65,15 +65,15 @@ import_certs_into_db() {
             -d "sql:$db_dir" \
             -A -t "TC" \
             -n "$cert_name" \
-            -i "$cert_file" >> "$_CAC_LOG_FILE" 2>&1 || s=$?
+            -i "$cert_file" 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || s=$?
 
         if [[ $s -eq 0 ]]; then
-            (( imported++ ))
+            (( ++imported ))
             # Emit for Python to append to state.imported_cert_nicknames
             echo "STATE:imported_cert_nicknames+=$cert_name"
             echo "ACTION:cert_import|$db_dir|$cert_name|TC"
         else
-            (( failed++ ))
+            (( ++failed ))
             log_warn "  Failed to import: $cert_name (non-fatal, continuing)"
         fi
     done
@@ -130,10 +130,10 @@ remove_all_certs() {
             if sudo -H -u "$REAL_USER" certutil \
                     -d "sql:$db_dir" -L -n "$nick" > /dev/null 2>&1; then
                 sudo -H -u "$REAL_USER" certutil \
-                    -d "sql:$db_dir" -D -n "$nick" >> "$_CAC_LOG_FILE" 2>&1 || true
-                (( removed++ ))
+                    -d "sql:$db_dir" -D -n "$nick" 2>&1 | tee -a "$_CAC_LOG_FILE" > /dev/null || true
+                (( ++removed ))
             else
-                (( skipped++ ))
+                (( ++skipped ))
             fi
         done
         log_success "  Removed $removed cert(s), skipped $skipped (already absent)"

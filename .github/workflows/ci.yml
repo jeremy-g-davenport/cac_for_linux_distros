@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  workflow_call:  # allows release.yml to call this workflow and block on its result
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Fast syntax checks ────────────────────────────────────────────────────────
+  bash-syntax:
+    name: Bash syntax (bash -n)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check all lib and bash scripts
+        run: bash -n lib/*.sh bash/*.sh
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+      - name: Lint all lib and bash scripts
+        run: shellcheck -x lib/*.sh bash/*.sh
+
+  # ── Python checks ─────────────────────────────────────────────────────────────
+  python-lint:
+    name: Python lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint orchestrator, distros, and entry points
+        run: ruff check orchestrator/ distros/ cac_setup.py cac_uninstall.py
+
+  python-tests:
+    name: Python unit tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run orchestrator unit tests
+        run: python -m unittest discover -s tests/test_orchestrator -v
+
+  # ── BATS tests ────────────────────────────────────────────────────────────────
+  bats-unit:
+    name: BATS unit tests (mocked, ubuntu-latest)
+    needs: [bash-syntax, shellcheck]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats-core from source
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          sudo /tmp/bats/install.sh /usr/local
+      - name: Run BATS unit tests with mocked system commands
+        run: bats tests/*.bats
+
+  bats-arch:
+    name: BATS unit tests (real Arch packages, archlinux:latest)
+    needs: [bash-syntax, shellcheck]
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Arch dependencies (full sync + upgrade)
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm bash bats nss pcsclite opensc python
+      - name: Run BATS unit tests against real Arch binaries
+        run: bats tests/*.bats

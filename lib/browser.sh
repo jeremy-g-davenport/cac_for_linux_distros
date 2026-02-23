@@ -54,7 +54,7 @@ _ensure_firefox_profile() {
                           -name cert9.db 2>/dev/null | grep -v Trash | head -1 || true)"
             [[ -n "$ff_db" ]] && break
             sleep 0.5
-            (( waited++ ))
+            (( ++waited ))
         done
         kill "$ff_pid" 2>/dev/null || true
         if [[ -z "$ff_db" ]]; then
@@ -85,7 +85,7 @@ check_for_chromium_browsers() {
     for browser in google-chrome chromium microsoft-edge-stable brave; do
         if command -v "$browser" > /dev/null 2>&1; then
             log_success "Found: $browser"
-            (( found_count++ ))
+            (( ++found_count ))
         fi
     done
     if [[ $found_count -gt 0 ]]; then
@@ -100,8 +100,11 @@ _ensure_nssdb() {
     if [[ ! -d "$nssdb" ]]; then
         log_info "Creating shared Chromium NSS database at: $nssdb"
         sudo -H -u "$REAL_USER" mkdir -p "$nssdb"
-        if ! sudo -H -u "$REAL_USER" certutil -d "sql:$nssdb" -N --empty-password \
-                >> "$_CAC_LOG_FILE" 2>&1; then
+        local _nssdb_init_out _nssdb_init_rc=0
+        _nssdb_init_out=$(sudo -H -u "$REAL_USER" certutil -d "sql:$nssdb" -N --empty-password 2>&1) \
+            || _nssdb_init_rc=$?
+        printf '%s\n' "$_nssdb_init_out" >> "$_CAC_LOG_FILE"
+        if [[ $_nssdb_init_rc -ne 0 ]]; then
             log_error "Failed to initialize NSS database at $nssdb"
             return 1
         fi

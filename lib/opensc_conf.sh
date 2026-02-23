@@ -11,7 +11,7 @@
 # Source: M-Pepper linux-cac-walkthrough
 # No set -euo pipefail — inherited from bash/install.sh or bash/uninstall.sh.
 
-OPENSC_CONF="/etc/opensc/opensc.conf"
+[[ -v OPENSC_CONF ]] || OPENSC_CONF="/etc/opensc/opensc.conf"
 
 configure_opensc_cac_driver() {
     log_section "OpenSC Configuration"
