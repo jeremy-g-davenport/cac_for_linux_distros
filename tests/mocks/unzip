@@ -1,0 +1,20 @@
+#!/bin/bash
+# tests/mocks/unzip — Creates fake .cer files in the -d output directory.
+# Set MOCK_UNZIP_LOG  to record invocations.
+# Set MOCK_UNZIP_EXIT (default 0)
+echo "unzip $*" >> "${MOCK_UNZIP_LOG:-/dev/null}"
+# Extract -d <destdir> argument
+destdir="."
+prev_is_d=""
+for arg in "$@"; do
+    if [[ -n "$prev_is_d" ]]; then
+        destdir="$arg"
+        break
+    fi
+    [[ "$arg" == "-d" ]] && prev_is_d=1
+done
+mkdir -p "$destdir/AllCerts"
+echo "fake cert data" > "$destdir/AllCerts/DoD_Root_CA_1.cer"
+echo "fake cert data" > "$destdir/AllCerts/DoD_Root_CA_2.cer"
+echo "fake cert data" > "$destdir/AllCerts/DoD_CA_1.cer"
+exit "${MOCK_UNZIP_EXIT:-0}"

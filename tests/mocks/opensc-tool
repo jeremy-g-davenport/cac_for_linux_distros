@@ -1,0 +1,6 @@
+#!/bin/bash
+# tests/mocks/opensc-tool — Configurable stub.
+# Set MOCK_OPENSC_TOOL_OUTPUT to control --list-readers output
+# Set MOCK_OPENSC_TOOL_EXIT   (default 0)
+echo "${MOCK_OPENSC_TOOL_OUTPUT:-}"
+exit "${MOCK_OPENSC_TOOL_EXIT:-0}"

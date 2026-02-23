@@ -1,0 +1,6 @@
+#!/bin/bash
+# tests/mocks/pkcs11-tool — Configurable stub.
+# Set MOCK_PKCS11_TOOL_OUTPUT to control --list-objects output
+# Set MOCK_PKCS11_TOOL_EXIT   (default 0)
+echo "${MOCK_PKCS11_TOOL_OUTPUT:-}"
+exit "${MOCK_PKCS11_TOOL_EXIT:-0}"

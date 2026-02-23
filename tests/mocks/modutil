@@ -1,0 +1,10 @@
+#!/bin/bash
+# tests/mocks/modutil — Configurable stub.
+# Set MOCK_MODUTIL_LOG         to record invocations.
+# Set MOCK_MODUTIL_LIST_OUTPUT to control -list output (default: empty)
+# Set MOCK_MODUTIL_EXIT        (default 0)
+echo "modutil $*" >> "${MOCK_MODUTIL_LOG:-/dev/null}"
+if [[ "$*" == *"-list"* ]]; then
+    printf '%s\n' "${MOCK_MODUTIL_LIST_OUTPUT:-}"
+fi
+exit "${MOCK_MODUTIL_EXIT:-0}"

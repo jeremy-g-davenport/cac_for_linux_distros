@@ -1,0 +1,11 @@
+#!/bin/bash
+# tests/mocks/systemctl — Configurable stub.
+# Set MOCK_SYSTEMCTL_LOG    to record invocations.
+# Set MOCK_SYSTEMCTL_ACTIVE (default 0) to control is-active exit code
+# Set MOCK_SYSTEMCTL_EXIT   (default 0) for all other subcommands
+echo "systemctl $*" >> "${MOCK_SYSTEMCTL_LOG:-/dev/null}"
+case "${1:-}" in
+    is-active)  exit "${MOCK_SYSTEMCTL_ACTIVE:-0}" ;;
+    is-enabled) exit "${MOCK_SYSTEMCTL_ENABLED:-0}" ;;
+    *)          exit "${MOCK_SYSTEMCTL_EXIT:-0}" ;;
+esac
