@@ -1,4 +1,4 @@
-# Contributing to CAC for CachyOS
+# Contributing to CAC for Linux Distros
 
 Thank you for your interest in contributing. This project manages smart card
 authentication for government employees, so code quality and correctness matter

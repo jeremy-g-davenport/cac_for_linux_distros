@@ -2,6 +2,9 @@
 .claude/
 CLAUDE.md
 
+# Root-level PLAN.md — authoritative copy lives in docs/PLAN.md
+PLAN.md
+
 # Project source directories (excluded linux_cac fork, and cachy_cac planning documents)
 cachy_cac/
 linux_cac/
