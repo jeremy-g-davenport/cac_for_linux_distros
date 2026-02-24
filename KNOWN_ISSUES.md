@@ -196,4 +196,47 @@ failing immediately.
 
 ---
 
+## Issue #1: `source .venv/bin/activate` fails in Fish shell
+**Date found:** 2026-02-23
+**Step/Function:** VM setup / developer workflow (not install code)
+**Symptom:** Running `source .venv/bin/activate` in Fish (Konsole, KDE, CachyOS default)
+produces: *"case" builtin not inside of switch block* at line 40 of the activate script.
+**Root cause:** `.venv/bin/activate` is a Bash script. Fish cannot source it.
+Python venvs ship a Fish-specific `activate.fish`, but relying on per-shell
+scripts requires knowing the user's shell in advance.
+**Fix applied:** `tests/CachyOS_dev_VM_testing.md` updated to call venv executables
+directly by path (`.venv/bin/pip`, `.venv/bin/python`) throughout, eliminating
+any need to source an activation script. Works in any shell.
+**Verified fixed by:** GitHub issue #21 — confirmed on fresh CachyOS VM in Fish.
+
+---
+
+## Issue #2: `detect_aur_helper` BATS tests fail when `paru` is installed on the host
+**Date found:** 2026-02-24
+**Step/Function:** `tests/test_aur.bats` — `detect_aur_helper falls back to yay when paru is absent`
+  and `detect_aur_helper sets _AUR_HELPER to empty when no AUR helper found`
+**Symptom:** Two tests that should hide `paru` from `PATH` continued to find it
+  and set `_AUR_HELPER="paru"`, causing assertion failures.
+  First observed on a CachyOS development VM (Oracle VirtualBox) where `paru`
+  is installed as part of the default CachyOS package set.
+**Root cause:** The fallback test filtered `PATH` entries using
+  `grep -v paru`, which removes only directories whose *name* contains the
+  string "paru".  On CachyOS, `paru` is installed in `/usr/bin` — a directory
+  whose name does not contain "paru" — so `/usr/bin` survived the filter and
+  `command -v paru` still resolved to the real binary.
+  The "no helper" test relied on the inherited mock `PATH` from `_use_mocks()`
+  not containing `paru` or `yay`, which is true in a clean container but not
+  on a developer machine where those helpers are installed system-wide.
+**Fix applied:** `tests/test_aur.bats` — replaced the fragile `grep`-based
+  PATH filter with a fully self-contained minimal PATH for each affected test:
+  - Fallback test: `PATH="$yay_dir"` (only `yay` present; no system dirs).
+  - No-helper test: `PATH="$empty_dir"` (empty temp dir; nothing resolvable).
+  Since `detect_aur_helper` only calls `command -v paru` / `command -v yay`
+  and sourced Bash functions (`log_info`, `log_warn`), no other PATH entries
+  are needed.
+**Verified fixed by:** Issue #23 — confirmed on CachyOS VM (Oracle VirtualBox)
+  via `bats tests/test_aur.bats`; all 5 tests pass.
+
+---
+
 *Add numbered runtime issues below as testing begins.*
