@@ -29,15 +29,20 @@ teardown() {
     mkdir -p "$yay_dir"
     printf '#!/bin/bash\nexit 0\n' > "$yay_dir/yay"
     chmod +x "$yay_dir/yay"
-    # paru is not in PATH; only yay is
-    PATH="$yay_dir:$(echo "$PATH" | tr ':' '\n' | grep -v paru | tr '\n' ':' | sed 's/:$//')" \
-        detect_aur_helper
+    # Use a fully self-contained PATH with only yay_dir.
+    # grep -v paru only removes entries whose *directory name* contains "paru";
+    # on CachyOS, paru lives in /usr/bin, so the filter left /usr/bin in PATH
+    # and command -v paru still resolved.  A minimal PATH avoids the fragility.
+    PATH="$yay_dir" detect_aur_helper
     [[ "$_AUR_HELPER" == "yay" ]]
 }
 
 @test "detect_aur_helper sets _AUR_HELPER to empty when no AUR helper found" {
-    # PATH has mocks/ but no paru or yay executables
-    detect_aur_helper
+    # Use a minimal PATH that contains no executables at all so neither paru
+    # nor yay can be resolved, regardless of what is installed on the host.
+    local empty_dir="$BATS_TMPDIR/empty_bin"
+    mkdir -p "$empty_dir"
+    PATH="$empty_dir" detect_aur_helper
     [[ -z "$_AUR_HELPER" ]]
 }
 
