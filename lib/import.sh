@@ -86,6 +86,17 @@ import_certs_into_db() {
 
 import_all_certs() {
     log_section "Certificate Import"
+
+    # Re-populate CERT_FILES from disk when running as a separate subprocess.
+    # The Python orchestrator calls each phase as an independent bash subprocess,
+    # so in-memory variables set by extract_certs (--phase=certs) are not
+    # inherited by import_all_certs (--phase=import). Re-scan the staging
+    # directory to recover the certificate list. See KNOWN_ISSUES.md #3.
+    if [[ ${#CERT_FILES[@]} -eq 0 ]] && [[ -n "${DWNLD_DIR:-}" ]] && [[ -d "${DWNLD_DIR}/${CERT_DIR_NAME}" ]]; then
+        mapfile -t CERT_FILES < <(find "${DWNLD_DIR}/${CERT_DIR_NAME}" -name "*.cer" -type f 2>/dev/null)
+        log_info "Re-scanned staging directory: found ${#CERT_FILES[@]} certificate file(s)."
+    fi
+
     if [[ ${#CERT_FILES[@]} -eq 0 ]]; then
         log_error "No certificate files available. Run extract_certs first."
         exit 1
