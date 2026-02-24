@@ -20,16 +20,18 @@ from .state import InstallState
 BASH_DIR = Path(__file__).parent.parent / "bash"
 INSTALL_SCRIPT = BASH_DIR / "install.sh"
 
-# 7 install phases executed in order
+# 8 install phases executed in order.
+# Each name maps directly to --phase=<name> in bash/install.sh.
+# Cross-check against the --phase=all case in install.sh whenever adding phases.
 PHASES = [
-    "preflight",   # detect distro/arch, check root, check browsers closed
-    "packages",    # pacman -Syu + install required packages
-    "service",     # enable + start pcscd.socket
-    "certs",       # download and extract DoD AllCerts.zip
-    "browser",     # discover NSS databases, ensure Firefox profile exists
-    "import",      # certutil: import all DoD CA certs into each NSS db
-    "pkcs11",      # modutil: register OpenSC PKCS11 module in each NSS db
-    "verify",      # post-install verification
+    "preflight",    # detect distro/arch, check root, check browsers closed
+    "packages",     # pacman -Syu + install required packages
+    "opensc-conf",  # write force_card_driver = cac to /etc/opensc/opensc.conf
+    "service",      # detect conflicting kernel modules; enable + start pcscd.socket
+    "certs",        # download and extract DoD AllCerts.zip
+    "import",       # discover NSS databases; certutil import all DoD CA certs
+    "pkcs11",       # modutil: register OpenSC PKCS11 module in each NSS db
+    "verify",       # cleanup staging dir; post-install verification
 ]
 
 
