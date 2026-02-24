@@ -266,4 +266,48 @@ any need to source an activation script. Works in any shell.
 
 ---
 
+## Issue #3: PID-based staging directory breaks certificate import across phase subprocesses
+**Date found:** 2026-02-23
+**Step/Function:** `lib/certs.sh::extract_certs()` → `lib/import.sh::import_all_certs()`
+  and `lib/certs.sh::cleanup_certs()` (called in `--phase=verify`)
+**Symptom:** All three Level 2 integration tests failed on a freshly re-cloned CachyOS
+  development VM (Oracle VirtualBox) after `orchestrator/setup_flow.py` PHASES list
+  was corrected (Issue #2). The install log was virtually empty because the failure
+  occurred early in the `--phase=import` subprocess.
+  `import_all_certs` logged `[ERROR] No certificate files available. Run extract_certs
+  first.` and exited 1. `stream_bash()` raised `CalledProcessError`, which propagated
+  through `run_setup()` and terminated the install. Tests 2 and 3 then failed as
+  downstream consequences of test 1 failing.
+**Root cause:** `lib/certs.sh` declared `DWNLD_DIR="/tmp/cac_for_linux_distros_$$"` as
+  a module-level variable (sourced at load time). `$$` expands to the PID of the current
+  bash process. The Python orchestrator runs each install phase as a **separate bash
+  subprocess** via `bash bash/install.sh --phase=<name>`. Each subprocess has a unique
+  PID, so:
+  - `--phase=certs` creates `/tmp/cac_for_linux_distros_<PID1>/` and populates
+    `CERT_FILES` in memory.
+  - `--phase=import` evaluates `DWNLD_DIR` as `/tmp/cac_for_linux_distros_<PID2>/`
+    (a different, non-existent path). Its `CERT_FILES` array is always empty (variables
+    do not cross subprocess boundaries). `import_all_certs` exits 1.
+  - `--phase=verify` calls `cleanup_certs` against `/tmp/cac_for_linux_distros_<PID3>/`
+    — also non-existent; the staging directory is never cleaned up.
+  BATS unit tests were unaffected because `tests/test_certs.bats::setup()` explicitly
+  overrides `DWNLD_DIR="$BATS_TMPDIR/cac_test_$$"`, masking the bug. The `--phase=all`
+  standalone escape hatch was also unaffected because all phases run within a single
+  subprocess that shares one PID throughout.
+**Fix applied:**
+  1. `lib/certs.sh` — replaced `DWNLD_DIR="/tmp/cac_for_linux_distros_$$"` with
+     `DWNLD_DIR="${DWNLD_DIR:-/tmp/cac_for_linux_distros_staging}"`. The guard preserves
+     the existing BATS override behaviour (BATS sets `DWNLD_DIR` before sourcing, so the
+     `:-` default is never used in unit tests). The fixed path is accessible by all phase
+     subprocesses.
+  2. `lib/import.sh::import_all_certs()` — added a re-scan block before the empty-check
+     exit: if `CERT_FILES` is empty and `$DWNLD_DIR/$CERT_DIR_NAME` exists on disk,
+     `mapfile` repopulates `CERT_FILES` from a `find` of that directory. This provides a
+     defensive fallback for any future scenario (e.g., snapshot restore) where the staging
+     directory is present but the in-memory array is empty.
+**Verified fixed by:** Issue #27 — confirmed on CachyOS VM (Oracle VirtualBox) via
+  `sudo CI_INTEGRATION=1 bats tests/integration/test_full_install.bats`; all 3 tests pass.
+
+---
+
 *Add numbered runtime issues below as testing begins.*

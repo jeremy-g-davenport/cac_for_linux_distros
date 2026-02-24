@@ -15,12 +15,17 @@
 [[ -v BUNDLE_NAME    ]] || readonly BUNDLE_NAME="AllCerts.zip"
 [[ -v CERT_DIR_NAME  ]] || readonly CERT_DIR_NAME="AllCerts"
 
-# PID-unique staging directory — no collisions between concurrent runs
-DWNLD_DIR="/tmp/cac_for_linux_distros_$$"
+# Fixed staging directory shared across all phase subprocesses.
+# Using a PID-based path ($$) would create a different directory in each
+# subprocess invoked by the Python orchestrator — the certs phase and the
+# import/verify phases would each see a different, non-existent path.
+# BATS unit tests override this via DWNLD_DIR="$BATS_TMPDIR/cac_test_$$"
+# in their setup() function, so the guard preserves that isolation.
+DWNLD_DIR="${DWNLD_DIR:-/tmp/cac_for_linux_distros_staging}"
 
 # Known-good SHA-256 of AllCerts.zip.
 # Update this after each DoD bundle refresh:
-#   sha256sum /tmp/cac_for_linux_distros_<pid>/AllCerts.zip
+#   sha256sum /tmp/cac_for_linux_distros_staging/AllCerts.zip
 # Set to "" to warn-only without a specific expected hash.
 # See KNOWN_ISSUES.md #P9.
 KNOWN_CERT_SHA256=""
