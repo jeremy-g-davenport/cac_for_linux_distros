@@ -239,4 +239,31 @@ any need to source an activation script. Works in any shell.
 
 ---
 
+## Issue #2: `orchestrator/setup_flow.py` PHASES list out of sync with `bash/install.sh`
+**Date found:** 2026-02-24
+**Step/Function:** `orchestrator/setup_flow.py::run_setup()` — Level 2 integration test
+**Symptom:** All three tests in `tests/integration/test_full_install.bats` failed when
+  run on a CachyOS development VM (Oracle VirtualBox) with `sudo CI_INTEGRATION=1 bats`:
+  `full install completes without errors`, `verify_pcscd_service returns active after
+  install`, and `full uninstall completes without errors` all exited non-zero.
+**Root cause:** The `PHASES` list in `orchestrator/setup_flow.py` contained `"browser"`
+  (which has no corresponding `--phase=browser` case in `bash/install.sh`) and was
+  missing `"opensc-conf"` (which is a real phase in `install.sh` responsible for writing
+  `force_card_driver = cac` to `/etc/opensc/opensc.conf`).  When the orchestrator reached
+  `--phase=browser`, `install.sh` hit the `*)` catch-all, printed `[ERROR] Unknown phase`
+  to stderr, and exited 1.  `stream_bash()` raised `CalledProcessError`, which propagated
+  uncaught through `run_setup()` and `cac_setup.py`, terminating the install with a
+  non-zero exit status.  The missing `opensc-conf` phase meant OpenSC CAC driver
+  configuration was silently skipped in the Python-orchestrated path (though it was
+  executed correctly in the `--phase=all` standalone escape hatch).
+**Fix applied:** `orchestrator/setup_flow.py` — replaced the stale 7-entry PHASES list
+  with the correct 8-entry list that mirrors the `--phase=all` sequence in `install.sh`:
+  `preflight → packages → opensc-conf → service → certs → import → pkcs11 → verify`.
+  Added an inline comment directing developers to cross-check against `--phase=all`
+  in `install.sh` whenever the phase list is modified.
+**Verified fixed by:** Issue #25 — confirmed on CachyOS VM (Oracle VirtualBox)
+  via `sudo CI_INTEGRATION=1 bats tests/integration/test_full_install.bats`.
+
+---
+
 *Add numbered runtime issues below as testing begins.*
