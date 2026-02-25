@@ -19,6 +19,15 @@ NSS_DATABASES=()
 FF_FOUND=false
 CHROMIUM_ANY_FOUND=false
 
+# Phases that run after the import phase (pkcs11, verify) receive NSS_DB_PATHS
+# injected by the Python orchestrator with the databases discovered during import.
+# Convert it to the NSS_DATABASES array so those phases can operate on the
+# same databases without re-running discover_databases (which has side-effects
+# like headless Firefox launch and browser-closed checks).
+if [[ ${#NSS_DATABASES[@]} -eq 0 ]] && [[ -n "${NSS_DB_PATHS:-}" ]]; then
+    IFS=':' read -ra NSS_DATABASES <<< "$NSS_DB_PATHS"
+fi
+
 check_browsers_closed() {
     # Browsers must be closed before NSS database modifications.
     # Writing cert9.db or pkcs11.txt while a browser holds the file open
