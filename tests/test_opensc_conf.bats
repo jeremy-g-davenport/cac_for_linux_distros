@@ -37,10 +37,14 @@ teardown() {
     grep -q "force_card_driver" "$OPENSC_CONF"
 }
 
-@test "configure_opensc_cac_driver warns and returns 0 when file missing" {
+@test "configure_opensc_cac_driver creates opensc.conf with force_card_driver when file is missing" {
+    # Arch/CachyOS opensc package does not ship a default opensc.conf.
+    # The function must create the file rather than skipping. See Issue #5d.
     rm -f "$OPENSC_CONF"
     run configure_opensc_cac_driver
     [ "$status" -eq 0 ]
+    [ -f "$OPENSC_CONF" ]
+    grep -qE "^[[:space:]]*force_card_driver" "$OPENSC_CONF"
 }
 
 @test "configure_opensc_cac_driver adds force_card_driver when default config has commented-out directive" {

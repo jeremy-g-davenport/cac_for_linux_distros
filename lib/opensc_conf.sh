@@ -16,11 +16,6 @@
 configure_opensc_cac_driver() {
     log_section "OpenSC Configuration"
 
-    if [[ ! -f "$OPENSC_CONF" ]]; then
-        log_warn "$OPENSC_CONF not found — skipping (opensc may not be installed yet)"
-        return 0
-    fi
-
     # Idempotent: skip only if an UNCOMMENTED force_card_driver = cac line is
     # already present. The default Arch/CachyOS opensc.conf ships with a
     # commented-out example:
@@ -36,6 +31,17 @@ configure_opensc_cac_driver() {
     fi
 
     log_info "Adding CAC driver forcing to $OPENSC_CONF..."
+
+    if [[ ! -f "$OPENSC_CONF" ]]; then
+        # The Arch/CachyOS opensc package does not ship a default opensc.conf.
+        # Create the file from scratch so OpenSC picks up force_card_driver on
+        # next load. See KNOWN_ISSUES.md Issue #5d.
+        mkdir -p "$(dirname "$OPENSC_CONF")"
+        printf 'app default {\n\tcard_drivers = cac;\n\tforce_card_driver = cac;\n}\n' \
+            > "$OPENSC_CONF"
+        log_success "Created $OPENSC_CONF with force_card_driver = cac."
+        return 0
+    fi
 
     if grep -q "app default {" "$OPENSC_CONF"; then
         # Insert immediately after the `app default {` line

@@ -429,8 +429,17 @@ any need to source an activation script. Works in any shell.
      no-op from propagating as success.
   4. `lib/verify.sh::verify_pkcs11_registered()` — added the same guard: returns 1 with an error
      log if `NSS_DATABASES` is empty, instead of returning 0 (nothing checked is not a pass).
+  5. (Bug 5d — discovered during Level 3 re-test) `lib/opensc_conf.sh` — removed the early
+     `return 0` when `$OPENSC_CONF` is missing. The Arch/CachyOS `opensc` package does NOT ship
+     a default `/etc/opensc/opensc.conf`, so the old guard silently skipped the entire function.
+     Now the function creates the file and directory from scratch using `mkdir -p` + `printf`, then
+     returns 0. This is the actual root cause of the Level 3 Firefox failure: without this fix,
+     OpenSC never received `force_card_driver = cac` and used its auto-detection heuristic, which
+     selected the wrong driver. The test "warns and returns 0 when file missing" was replaced with
+     "creates opensc.conf with force_card_driver when file is missing".
 **Verified fixed by:** Issue #30 — PR `p1/fix-opensc-conf-and-nssdb`. New BATS tests:
-  `tests/test_opensc_conf.bats` — commented-out directive triggers active-line insertion.
+  `tests/test_opensc_conf.bats` — commented-out directive triggers active-line insertion;
+     file-absent case now creates a new file with the active directive.
   `tests/test_browser.bats` — nssdb always added to NSS_DATABASES even with no Chromium.
   `tests/test_pkcs11.bats` — register_pkcs11_all exits non-zero with empty NSS_DATABASES.
   `tests/test_verify.bats` — verify_pkcs11_registered returns non-zero with empty NSS_DATABASES.
