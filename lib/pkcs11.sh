@@ -93,6 +93,17 @@ register_pkcs11_all() {
         exit 1
     fi
 
+    # Guard against an empty NSS_DATABASES array. An empty array causes the
+    # loop below to complete zero iterations and return success, leaving no
+    # browser configured for CAC auth with no error logged. This can happen
+    # if NSS_DB_PATHS was not injected by the orchestrator or the import phase
+    # did not populate state.nss_databases. See KNOWN_ISSUES.md Issue #5c.
+    if [[ ${#NSS_DATABASES[@]} -eq 0 ]]; then
+        log_error "NSS_DATABASES is empty — no databases to register the PKCS11 module in."
+        log_error "Ensure the import phase completed and NSS_DB_PATHS is set."
+        exit 1
+    fi
+
     local db_dir
     for db_dir in "${NSS_DATABASES[@]}"; do
         register_pkcs11_in_db "$db_dir"

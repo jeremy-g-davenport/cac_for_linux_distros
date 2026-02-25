@@ -112,3 +112,22 @@ teardown() {
     _source_lib "browser"
     [ "${#NSS_DATABASES[@]}" -eq 0 ]
 }
+
+@test "discover_databases adds nssdb to NSS_DATABASES even when no Chromium browser is installed" {
+    # Set up Firefox profile so discover_databases does not exit with E_BROWSER
+    local ff_profile="$REAL_HOME/.config/mozilla/firefox/abc2.default"
+    mkdir -p "$ff_profile"
+    touch "$ff_profile/cert9.db"
+    # pgrep mock: no browsers running
+    local pgrep_dir="$BATS_TMPDIR/pgrep_nb_$$"
+    mkdir -p "$pgrep_dir"
+    printf '#!/bin/bash\nexit 1\n' > "$pgrep_dir/pgrep"
+    chmod +x "$pgrep_dir/pgrep"
+    # Firefox mock (exists); no chromium/google-chrome in PATH
+    local ff_dir="$BATS_TMPDIR/ff2_$$"
+    mkdir -p "$ff_dir"
+    printf '#!/bin/bash\nexit 0\n' > "$ff_dir/firefox"
+    chmod +x "$ff_dir/firefox"
+    PATH="$pgrep_dir:$ff_dir:$PATH" discover_databases
+    [[ "${NSS_DATABASES[*]}" == *"$REAL_HOME/.pki/nssdb"* ]]
+}

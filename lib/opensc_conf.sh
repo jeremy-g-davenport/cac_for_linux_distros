@@ -21,8 +21,16 @@ configure_opensc_cac_driver() {
         return 0
     fi
 
-    # Idempotent: if force_card_driver is already present, nothing to do.
-    if grep -q "force_card_driver" "$OPENSC_CONF" 2>/dev/null; then
+    # Idempotent: skip only if an UNCOMMENTED force_card_driver = cac line is
+    # already present. The default Arch/CachyOS opensc.conf ships with a
+    # commented-out example:
+    #   # force_card_driver = cac;
+    # A plain `grep -q "force_card_driver"` matches that comment and falsely
+    # reports "already configured", leaving OpenSC using its auto-detection
+    # heuristic — which may pick the PIV-II driver instead of CAC, silently
+    # preventing card reads. See KNOWN_ISSUES.md Issue #5a.
+    if grep -qE "^[[:space:]]*force_card_driver[[:space:]]*=[[:space:]]*['\"]?cac['\"]?" \
+            "$OPENSC_CONF" 2>/dev/null; then
         log_info "OpenSC CAC driver forcing already configured."
         return 0
     fi

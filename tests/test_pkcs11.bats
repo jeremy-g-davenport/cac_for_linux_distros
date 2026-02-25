@@ -75,3 +75,12 @@ teardown() {
     ! grep -q "\-delete" "$MOCK_MODUTIL_LOG" 2>/dev/null
     true
 }
+
+@test "register_pkcs11_all exits non-zero when NSS_DATABASES is empty" {
+    NSS_DATABASES=()
+    # Create a real file so the OPENSC_PKCS11_LIB existence check passes
+    OPENSC_PKCS11_LIB="$(mktemp)"
+    run register_pkcs11_all
+    rm -f "$OPENSC_PKCS11_LIB"
+    [ "$status" -ne 0 ]
+}

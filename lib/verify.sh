@@ -40,8 +40,18 @@ verify_pcscd() {
 verify_pkcs11_registered() {
     # Verify the OpenSC PKCS11 module appears in each NSS database.
     # Must run modutil as $REAL_USER (NSS ownership rule).
-    # Returns 1 if any database is missing the registration.
+    # Returns 1 if any database is missing the registration, or if
+    # NSS_DATABASES is empty (nothing was checked → not a passing state).
     log_info "Verifying PKCS11 module registration..."
+
+    # Guard: an empty array causes the loop to run zero iterations and
+    # [[ $bad -eq 0 ]] would return 0 (success) even though nothing was
+    # checked. See KNOWN_ISSUES.md Issue #5c.
+    if [[ ${#NSS_DATABASES[@]} -eq 0 ]]; then
+        log_error "verify_pkcs11_registered: NSS_DATABASES is empty — nothing to check."
+        return 1
+    fi
+
     local ok=0 bad=0
     local db_dir
     for db_dir in "${NSS_DATABASES[@]}"; do
