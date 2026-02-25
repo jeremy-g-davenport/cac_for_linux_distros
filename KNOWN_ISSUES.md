@@ -456,26 +456,42 @@ any need to source an activation script. Works in any shell.
   on every pcscd.service start, including manual `systemctl restart` attempts.
   Confirmed with Realtek Smart Card Reader Interface (`0bda:0165`) on CachyOS VM
   (VirtualBox USB passthrough).
-**Root cause:** `pacman`'s post-transaction hook runs `udevadm control --reload` after
-  installing pcsclite/ccid, which reloads udev rules into the kernel but does NOT run
-  `udevadm trigger`. Without a trigger, a USB card reader that was already connected at
-  install time keeps the device-node permissions it had before ccid's udev rules were
-  installed. When `pcscd.service` starts, libusb calls `open("/dev/bus/usb/001/008", O_RDWR)`
-  which returns `EACCES`. The reader is found but cannot be opened, so pcscd reports zero
-  readers. The issue persists across `pcscd.service` restarts because the device permissions
-  are set at the udev `add` event time; they remain wrong until a trigger or physical reconnect.
-**Fix applied:** `lib/service.sh::enable_pcscd()` — added immediately after starting
-  `pcscd.socket`:
-  1. `udevadm control --reload-rules` — ensures the latest rules are loaded
-  2. `udevadm trigger --subsystem-match=usb` — re-evaluates all USB device nodes against
-     current rules, applying ccid permission rules to the already-connected reader
-  3. `udevadm settle --timeout=5` — waits for all udev events to finish before continuing
-  4. `systemctl start pcscd.service` — explicitly starts pcscd.service so it scans for
-     readers now, during install, with correct device permissions, rather than relying on
-     socket activation to start it at an arbitrary later time.
-**Verified fixed by:** `tests/test_service.bats` — `enable_pcscd triggers udev USB rules
-  for card reader access` confirms `udevadm trigger` is called; `enable_pcscd calls
-  systemctl enable and start for socket and service` confirms `pcscd.service` is started.
+**Root cause:** Three compounding factors:
+  1. **pcscd runs as non-root**: `pcscd.service` declares `User=pcscd`. libusb calls
+     `open("/dev/bus/usb/001/008", O_RDWR)`; the device node has `crw-rw-r-- root:root`
+     (others = read-only), so pcscd's open returns `EACCES` → `LIBUSB_ERROR_ACCESS`.
+  2. **`pacman`'s hook does not trigger**: After installing pcsclite/ccid, pacman's
+     post-transaction hook runs `udevadm control --reload` (reloads rules into kernel)
+     but NOT `udevadm trigger`. The already-connected reader keeps its pre-install
+     device-node permissions (group=root) indefinitely.
+  3. **Class-based rule only fires on `ACTION=="add"`**: `92_pcscd_ccid.rules` contains
+     `ENV{ID_USB_INTERFACES}=="*:0b0000:*", GROUP="pcscd"`, which matches CCID class
+     devices. The device has `E: ID_USB_INTERFACES=:0b0000:` (confirmed via `udevadm
+     info`), so the rule WOULD match — but it only fires on `ACTION=="add"`. The default
+     `udevadm trigger` uses `ACTION=="change"`, which does not fire that rule. The
+     device group therefore stays `root` even after a trigger, and pcscd still cannot
+     open it.
+  The issue persists across `pcscd.service` restarts because device permissions are only
+  updated when a matching udev rule fires; the device never gets an `add` event again
+  until physically reconnected.
+**Fix applied:** `lib/service.sh` — two-part fix in `enable_pcscd()`:
+  1. **`_write_ccid_udev_rules()`** — new helper scans `/sys/bus/usb/devices/*:*/` for
+     interfaces with `bInterfaceClass == 0b` (CCID), reads the parent device's `idVendor`
+     and `idProduct` from sysfs, and writes per-device rules to
+     `/etc/udev/rules.d/99-cac-ccid.rules`:
+     `ATTRS{idVendor}=="XXXX", ATTRS{idProduct}=="YYYY", GROUP="pcscd"`
+     VID:PID rules fire on both `add` AND `change`, bypassing the `ACTION=="add"`
+     restriction. Works for any CCID reader without requiring a device-specific list.
+  2. **`udevadm trigger --action=add --subsystem-match=usb`** — uses `ACTION==add`
+     explicitly so the class-based rule in `92_pcscd_ccid.rules` also fires, providing
+     belt-and-suspenders coverage for readers not yet in sysfs at scan time.
+  `disable_pcscd()` removes `/etc/udev/rules.d/99-cac-ccid.rules` and reloads rules.
+**Verified fixed by:** `tests/test_service.bats`:
+  - `enable_pcscd triggers udev USB rules with --action=add for card reader access`
+    confirms `udevadm trigger --action=add` is called.
+  - `_write_ccid_udev_rules creates the rules file` confirms the file is created.
+  - `enable_pcscd calls systemctl enable and start for socket and service` confirms
+    `pcscd.service` is started explicitly after the trigger.
 
 ---
 

@@ -12,6 +12,10 @@ _setup_test_env() {
     export NSS_DATABASES=()
     export _CAC_LOG_FILE
     _CAC_LOG_FILE="$(mktemp)"
+    # Override lib/service.sh module-level default so tests write to BATS_TMPDIR
+    # instead of /etc/udev/rules.d/ (which requires root and is not writable in CI).
+    # Must be set before _source_lib "service" so the :=  default is not applied.
+    export _CCID_RULES_FILE="$BATS_TMPDIR/99-cac-ccid.rules"
     mkdir -p "$REAL_HOME"
 }
 
@@ -33,7 +37,7 @@ _setup_mock_logs() {
     export MOCK_UDEVADM_LOG="$BATS_TMPDIR/mock_udevadm.log"
     rm -f "$MOCK_PACMAN_LOG" "$MOCK_SYSTEMCTL_LOG" "$MOCK_MODUTIL_LOG" \
           "$MOCK_CERTUTIL_LOG" "$MOCK_WGET_LOG" "$MOCK_UNZIP_LOG" \
-          "$MOCK_UDEVADM_LOG"
+          "$MOCK_UDEVADM_LOG" "$_CCID_RULES_FILE"
 }
 
 # Source the SCRIPT_DIR-resolved lib file.

@@ -34,12 +34,19 @@ teardown() {
     grep -q "systemctl start pcscd.service" "$MOCK_SYSTEMCTL_LOG"
 }
 
-@test "enable_pcscd triggers udev USB rules for card reader access" {
-    # pacman's post-hook reloads udev rules but never triggers existing devices.
-    # enable_pcscd must run udevadm trigger so connected readers get updated
-    # device-node permissions before pcscd.service starts. See Issue #5e.
+@test "enable_pcscd triggers udev USB rules with --action=add for card reader access" {
+    # pcscd runs as non-root ('pcscd' user). The class-based rule in
+    # 92_pcscd_ccid.rules only fires on ACTION=="add"; using --action=add
+    # ensures it fires for readers already connected at install time. See #5e.
     enable_pcscd
-    grep -q "udevadm trigger" "$MOCK_UDEVADM_LOG"
+    grep -q "udevadm trigger --action=add" "$MOCK_UDEVADM_LOG"
+}
+
+@test "_write_ccid_udev_rules creates the rules file" {
+    # Even with no CCID readers present (no /sys/bus/usb/devices in test env),
+    # the function must create the rules file (with just the header comment).
+    _write_ccid_udev_rules
+    [[ -f "$_CCID_RULES_FILE" ]]
 }
 
 @test "enable_pcscd emits ACTION lines for service_enable and service_start" {
