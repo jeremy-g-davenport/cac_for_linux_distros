@@ -446,4 +446,53 @@ any need to source an activation script. Works in any shell.
 
 ---
 
+## Issue #5e: pcscd fails with LIBUSB_ERROR_ACCESS after ccid install
+**Date found:** 2026-02-24
+**Step/Function:** Step 5 — `enable_pcscd()` in `lib/service.sh`
+**Symptom:** After a clean `cac_setup.py` install, `opensc-tool --list-readers` returns
+  "No smart card readers found" even though the reader is visible in `lsusb`. `pcscd.socket`
+  and `pcscd.service` are both active. `journalctl -u pcscd.service` shows:
+  `ccid_usb.c:OpenUSBByName() Can't libusb_open(1/8): LIBUSB_ERROR_ACCESS`
+  on every pcscd.service start, including manual `systemctl restart` attempts.
+  Confirmed with Realtek Smart Card Reader Interface (`0bda:0165`) on CachyOS VM
+  (VirtualBox USB passthrough).
+**Root cause:** Three compounding factors:
+  1. **pcscd runs as non-root**: `pcscd.service` declares `User=pcscd`. libusb calls
+     `open("/dev/bus/usb/001/008", O_RDWR)`; the device node has `crw-rw-r-- root:root`
+     (others = read-only), so pcscd's open returns `EACCES` → `LIBUSB_ERROR_ACCESS`.
+  2. **`pacman`'s hook does not trigger**: After installing pcsclite/ccid, pacman's
+     post-transaction hook runs `udevadm control --reload` (reloads rules into kernel)
+     but NOT `udevadm trigger`. The already-connected reader keeps its pre-install
+     device-node permissions (group=root) indefinitely.
+  3. **Class-based rule only fires on `ACTION=="add"`**: `92_pcscd_ccid.rules` contains
+     `ENV{ID_USB_INTERFACES}=="*:0b0000:*", GROUP="pcscd"`, which matches CCID class
+     devices. The device has `E: ID_USB_INTERFACES=:0b0000:` (confirmed via `udevadm
+     info`), so the rule WOULD match — but it only fires on `ACTION=="add"`. The default
+     `udevadm trigger` uses `ACTION=="change"`, which does not fire that rule. The
+     device group therefore stays `root` even after a trigger, and pcscd still cannot
+     open it.
+  The issue persists across `pcscd.service` restarts because device permissions are only
+  updated when a matching udev rule fires; the device never gets an `add` event again
+  until physically reconnected.
+**Fix applied:** `lib/service.sh` — two-part fix in `enable_pcscd()`:
+  1. **`_write_ccid_udev_rules()`** — new helper scans `/sys/bus/usb/devices/*:*/` for
+     interfaces with `bInterfaceClass == 0b` (CCID), reads the parent device's `idVendor`
+     and `idProduct` from sysfs, and writes per-device rules to
+     `/etc/udev/rules.d/99-cac-ccid.rules`:
+     `ATTRS{idVendor}=="XXXX", ATTRS{idProduct}=="YYYY", GROUP="pcscd"`
+     VID:PID rules fire on both `add` AND `change`, bypassing the `ACTION=="add"`
+     restriction. Works for any CCID reader without requiring a device-specific list.
+  2. **`udevadm trigger --action=add --subsystem-match=usb`** — uses `ACTION==add`
+     explicitly so the class-based rule in `92_pcscd_ccid.rules` also fires, providing
+     belt-and-suspenders coverage for readers not yet in sysfs at scan time.
+  `disable_pcscd()` removes `/etc/udev/rules.d/99-cac-ccid.rules` and reloads rules.
+**Verified fixed by:** `tests/test_service.bats`:
+  - `enable_pcscd triggers udev USB rules with --action=add for card reader access`
+    confirms `udevadm trigger --action=add` is called.
+  - `_write_ccid_udev_rules creates the rules file` confirms the file is created.
+  - `enable_pcscd calls systemctl enable and start for socket and service` confirms
+    `pcscd.service` is started explicitly after the trigger.
+
+---
+
 *Add numbered runtime issues below as testing begins.*
