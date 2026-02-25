@@ -36,6 +36,28 @@ enable_pcscd() {
         exit 1
     fi
 
+    # pacman's post-transaction hook runs `udevadm control --reload` after
+    # installing pcsclite/ccid but does NOT run `udevadm trigger`. Without a
+    # trigger, a USB card reader that was already connected before ccid was
+    # installed keeps its pre-ccid device-node permissions. When pcscd.service
+    # later starts (via socket activation), libusb_open() returns
+    # LIBUSB_ERROR_ACCESS and the reader is never found.
+    # Running the trigger + settle here ensures ccid udev rules are applied to
+    # the existing device before pcscd.service starts. See KNOWN_ISSUES.md #5e.
+    log_info "Applying udev rules to USB devices (required for card reader access)..."
+    udevadm control --reload-rules 2>/dev/null || true
+    udevadm trigger --subsystem-match=usb 2>/dev/null || true
+    udevadm settle --timeout=5 2>/dev/null || true
+
+    # Explicitly start pcscd.service so it scans for card readers now, during
+    # install, after the udev trigger above has set correct device permissions.
+    # Without this, socket activation may start pcscd.service at some later
+    # arbitrary point, possibly before a manual udev trigger is run.
+    log_info "Starting pcscd.service to scan for connected card readers..."
+    if ! log_cmd systemctl start pcscd.service; then
+        log_warn "pcscd.service did not start — it will start on first PKCS11 connection"
+    fi
+
     log_success "${PCSCD_UNIT} enabled and started."
     echo "ACTION:service_enable|${PCSCD_UNIT}|was_enabled_before=false"
     echo "ACTION:service_start|${PCSCD_UNIT}|was_active_before=false"

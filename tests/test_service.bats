@@ -27,10 +27,19 @@ teardown() {
     [[ "$output" == *"STATE:pcscd_was_active_before=true"* ]]
 }
 
-@test "enable_pcscd calls systemctl enable and start" {
+@test "enable_pcscd calls systemctl enable and start for socket and service" {
     enable_pcscd
     grep -q "systemctl enable pcscd.socket" "$MOCK_SYSTEMCTL_LOG"
     grep -q "systemctl start pcscd.socket" "$MOCK_SYSTEMCTL_LOG"
+    grep -q "systemctl start pcscd.service" "$MOCK_SYSTEMCTL_LOG"
+}
+
+@test "enable_pcscd triggers udev USB rules for card reader access" {
+    # pacman's post-hook reloads udev rules but never triggers existing devices.
+    # enable_pcscd must run udevadm trigger so connected readers get updated
+    # device-node permissions before pcscd.service starts. See Issue #5e.
+    enable_pcscd
+    grep -q "udevadm trigger" "$MOCK_UDEVADM_LOG"
 }
 
 @test "enable_pcscd emits ACTION lines for service_enable and service_start" {

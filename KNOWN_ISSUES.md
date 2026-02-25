@@ -446,4 +446,37 @@ any need to source an activation script. Works in any shell.
 
 ---
 
+## Issue #5e: pcscd fails with LIBUSB_ERROR_ACCESS after ccid install
+**Date found:** 2026-02-24
+**Step/Function:** Step 5 — `enable_pcscd()` in `lib/service.sh`
+**Symptom:** After a clean `cac_setup.py` install, `opensc-tool --list-readers` returns
+  "No smart card readers found" even though the reader is visible in `lsusb`. `pcscd.socket`
+  and `pcscd.service` are both active. `journalctl -u pcscd.service` shows:
+  `ccid_usb.c:OpenUSBByName() Can't libusb_open(1/8): LIBUSB_ERROR_ACCESS`
+  on every pcscd.service start, including manual `systemctl restart` attempts.
+  Confirmed with Realtek Smart Card Reader Interface (`0bda:0165`) on CachyOS VM
+  (VirtualBox USB passthrough).
+**Root cause:** `pacman`'s post-transaction hook runs `udevadm control --reload` after
+  installing pcsclite/ccid, which reloads udev rules into the kernel but does NOT run
+  `udevadm trigger`. Without a trigger, a USB card reader that was already connected at
+  install time keeps the device-node permissions it had before ccid's udev rules were
+  installed. When `pcscd.service` starts, libusb calls `open("/dev/bus/usb/001/008", O_RDWR)`
+  which returns `EACCES`. The reader is found but cannot be opened, so pcscd reports zero
+  readers. The issue persists across `pcscd.service` restarts because the device permissions
+  are set at the udev `add` event time; they remain wrong until a trigger or physical reconnect.
+**Fix applied:** `lib/service.sh::enable_pcscd()` — added immediately after starting
+  `pcscd.socket`:
+  1. `udevadm control --reload-rules` — ensures the latest rules are loaded
+  2. `udevadm trigger --subsystem-match=usb` — re-evaluates all USB device nodes against
+     current rules, applying ccid permission rules to the already-connected reader
+  3. `udevadm settle --timeout=5` — waits for all udev events to finish before continuing
+  4. `systemctl start pcscd.service` — explicitly starts pcscd.service so it scans for
+     readers now, during install, with correct device permissions, rather than relying on
+     socket activation to start it at an arbitrary later time.
+**Verified fixed by:** `tests/test_service.bats` — `enable_pcscd triggers udev USB rules
+  for card reader access` confirms `udevadm trigger` is called; `enable_pcscd calls
+  systemctl enable and start for socket and service` confirms `pcscd.service` is started.
+
+---
+
 *Add numbered runtime issues below as testing begins.*

@@ -30,8 +30,10 @@ _setup_mock_logs() {
     export MOCK_CERTUTIL_LOG="$BATS_TMPDIR/mock_certutil.log"
     export MOCK_WGET_LOG="$BATS_TMPDIR/mock_wget.log"
     export MOCK_UNZIP_LOG="$BATS_TMPDIR/mock_unzip.log"
+    export MOCK_UDEVADM_LOG="$BATS_TMPDIR/mock_udevadm.log"
     rm -f "$MOCK_PACMAN_LOG" "$MOCK_SYSTEMCTL_LOG" "$MOCK_MODUTIL_LOG" \
-          "$MOCK_CERTUTIL_LOG" "$MOCK_WGET_LOG" "$MOCK_UNZIP_LOG"
+          "$MOCK_CERTUTIL_LOG" "$MOCK_WGET_LOG" "$MOCK_UNZIP_LOG" \
+          "$MOCK_UDEVADM_LOG"
 }
 
 # Source the SCRIPT_DIR-resolved lib file.

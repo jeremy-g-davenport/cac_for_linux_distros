@@ -1,0 +1,5 @@
+#!/bin/bash
+# tests/mocks/udevadm — Configurable stub.
+# Set MOCK_UDEVADM_LOG to record invocations.
+echo "udevadm $*" >> "${MOCK_UDEVADM_LOG:-/dev/null}"
+exit 0
