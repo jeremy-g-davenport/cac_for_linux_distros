@@ -95,3 +95,20 @@ teardown() {
     MOCK_CERTUTIL_EXIT=0 _ensure_nssdb
     [[ -d "$REAL_HOME/.pki/nssdb" ]]
 }
+
+@test "NSS_DATABASES is populated from NSS_DB_PATHS when set at source time" {
+    # Simulate what Python injects for pkcs11/verify phases after import phase.
+    # Re-sourcing browser.sh with NSS_DB_PATHS set triggers the fallback block.
+    export NSS_DB_PATHS="$BATS_TMPDIR/db1:$BATS_TMPDIR/db2"
+    _source_lib "browser"
+    [ "${#NSS_DATABASES[@]}" -eq 2 ]
+    [[ "${NSS_DATABASES[0]}" == "$BATS_TMPDIR/db1" ]]
+    [[ "${NSS_DATABASES[1]}" == "$BATS_TMPDIR/db2" ]]
+    unset NSS_DB_PATHS
+}
+
+@test "NSS_DATABASES stays empty when NSS_DB_PATHS is unset" {
+    unset NSS_DB_PATHS
+    _source_lib "browser"
+    [ "${#NSS_DATABASES[@]}" -eq 0 ]
+}

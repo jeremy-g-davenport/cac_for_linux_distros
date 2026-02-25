@@ -24,8 +24,8 @@ for lib_file in log detect aur packages opensc_conf service certs browser import
     source "$SCRIPT_DIR/lib/$lib_file.sh"
 done
 
-validate_env
 log_init
+validate_env
 
 case "$PHASE" in
     --phase=preflight)

@@ -57,8 +57,6 @@ def run_setup(
         install_timestamp=time.time(),
     )
 
-    env = _build_env(driver, sudo_user, state)
-
     try:
         for phase in PHASES:
             if cancel_token:
@@ -70,6 +68,9 @@ def run_setup(
             if progress_cb:
                 progress_cb(f"[PHASE] {phase}")
 
+            # Rebuild env before each phase so state-derived vars (e.g. NSS_DB_PATHS
+            # after the import phase) are visible to subsequent bash subprocesses.
+            env = _build_env(driver, sudo_user, state)
             _run_phase(phase, env, state, cancel_token, progress_cb)
             state.save()
 
@@ -142,8 +143,14 @@ def _apply_state(key: str, val: str, state: InstallState) -> None:
         state.nss_databases = [p for p in val.split(":") if p]
     elif key == "imported_cert_nicknames":
         state.imported_cert_nicknames = [n for n in val.split(",") if n]
+    elif key == "imported_cert_nicknames+":
+        if val:
+            state.imported_cert_nicknames.append(val)
     elif key == "pkcs11_registered_in":
         state.pkcs11_registered_in = [p for p in val.split(":") if p]
+    elif key == "pkcs11_registered_in+":
+        if val:
+            state.pkcs11_registered_in.append(val)
 
 
 def _parse_action_detail(action_type: str, extra: list[str]) -> dict:

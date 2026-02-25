@@ -24,8 +24,8 @@ for lib_file in log detect service browser import pkcs11 packages verify; do
     source "$SCRIPT_DIR/lib/$lib_file.sh"
 done
 
-validate_env
 log_init
+validate_env
 
 case "$PHASE" in
     --phase=preflight)
