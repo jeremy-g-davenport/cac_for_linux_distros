@@ -42,3 +42,12 @@ teardown() {
     run configure_opensc_cac_driver
     [ "$status" -eq 0 ]
 }
+
+@test "configure_opensc_cac_driver adds force_card_driver when default config has commented-out directive" {
+    # The real Arch/CachyOS opensc.conf ships with force_card_driver commented out.
+    # The idempotency check must NOT match the comment — it must add the active line.
+    printf 'app default {\n    # force_card_driver = cac;\n}\n' > "$OPENSC_CONF"
+    configure_opensc_cac_driver
+    # An uncommented force_card_driver = cac line must now be present
+    grep -qE "^[[:space:]]*force_card_driver[[:space:]]*=[[:space:]]*" "$OPENSC_CONF"
+}

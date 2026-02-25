@@ -310,4 +310,131 @@ any need to source an activation script. Works in any shell.
 
 ---
 
+## Issue #4: Three bugs block integration tests and silently break install correctness
+**Date found:** 2026-02-25
+**Step/Function:** `bash/install.sh` / `bash/uninstall.sh` startup, `orchestrator/setup_flow.py`,
+  `lib/browser.sh`
+**Symptom:** All three Level 2 integration tests in `tests/integration/test_full_install.bats`
+  continued to fail after the Issue #3 fix (PR #28). The install log was virtually empty because
+  the failure occurred before any phase logic ran. Additionally, even when the install appeared to
+  succeed, the PKCS11 module was not registered in any NSS database, and the uninstall flow could
+  not remove imported certificates or PKCS11 registrations.
+**Root cause:** Three independent bugs, all masked by the BATS unit-test harness:
+
+  **Bug 4a (TEST-BLOCKING): `validate_env` called before `log_init` in `bash/install.sh` and
+  `bash/uninstall.sh`.**
+  `lib/log.sh` initialises `_CAC_LOG_FILE=""` at source time when the variable is unset. Python
+  never injects `_CAC_LOG_FILE` into the subprocess environment. `validate_env()` (called first)
+  ends with `log_info "Environment validated..."`, which calls `echo "..." >> "$_CAC_LOG_FILE"`.
+  With `_CAC_LOG_FILE=""`, bash produces "ambiguous redirect" and exits 1. Under `set -euo
+  pipefail` (declared in `install.sh`/`uninstall.sh`) this terminates the script immediately,
+  before any phase logic runs. `stream_bash()` raises `CalledProcessError` → `cac_setup.py`
+  crashes with a non-zero exit → all integration tests fail.
+  BATS unit tests were unaffected because `_setup_test_env()` explicitly sets
+  `_CAC_LOG_FILE="$(mktemp)"` before any lib file is sourced.
+
+  **Bug 4b (CORRECTNESS — uninstall): `STATE:imported_cert_nicknames+=` and
+  `STATE:pkcs11_registered_in+=` lines silently dropped by Python.**
+  `lib/import.sh` emits `echo "STATE:imported_cert_nicknames+=$cert_name"` per imported cert;
+  `lib/pkcs11.sh` emits `echo "STATE:pkcs11_registered_in+=$db_dir"` per registered database.
+  `setup_flow.py::_parse_line()` splits on the first `=`, producing key
+  `imported_cert_nicknames+` / `pkcs11_registered_in+`. Neither key matched any `elif` branch in
+  `_apply_state()`, so every emitted value was silently dropped. `state.imported_cert_nicknames`
+  and `state.pkcs11_registered_in` were always empty in `state.json` after install. The uninstall
+  flow calls `_state_read_list()` to read these lists and reverse those specific changes; with
+  empty lists it silently did nothing, leaving DoD CA certs and the PKCS11 module registered even
+  after uninstall completed successfully.
+
+  **Bug 4c (CORRECTNESS — install): `NSS_DATABASES` empty in `pkcs11` and `verify` phases.**
+  `lib/browser.sh` initialises `NSS_DATABASES=()` at module level; it is populated only by
+  `discover_databases()`, which is called only in `--phase=import`. The `--phase=pkcs11` and
+  `--phase=verify` phases call `register_pkcs11_all()` and `verify_pkcs11_registered()`, both of
+  which loop over `NSS_DATABASES`. Because that array is always empty in those subprocesses, PKCS11
+  registration is silently skipped for every NSS database. The tool appeared to succeed (exit 0)
+  but no OpenSC module was registered, so CAC authentication would not work in any browser.
+  Separately, `setup_flow.py::run_setup()` built the env dict once before the phase loop, so
+  `NSS_DB_PATHS` (derived from `state.nss_databases`, which is populated by the import phase) was
+  never injected for the pkcs11 or verify phases.
+
+**Fix applied:**
+  1. `bash/install.sh` and `bash/uninstall.sh` — swapped `validate_env` and `log_init` so the log
+     file is created before any function tries to write to it.
+  2. `orchestrator/setup_flow.py::_apply_state()` — added `elif key == "imported_cert_nicknames+":`
+     and `elif key == "pkcs11_registered_in+":` branches that call `.append(val)` on the
+     corresponding state list, matching the `+=` emit pattern in the bash libs.
+  3. `orchestrator/setup_flow.py::run_setup()` — moved `env = _build_env(...)` inside the phase
+     loop so every phase receives an env dict that reflects the latest `state` (including
+     `NSS_DB_PATHS` after the import phase sets `state.nss_databases`).
+  4. `lib/browser.sh` — added a module-level fallback block after `NSS_DATABASES=()` that reads
+     `NSS_DB_PATHS` (the colon-separated string injected by Python) and populates `NSS_DATABASES`
+     from it when the array would otherwise be empty. This allows the pkcs11 and verify phases to
+     operate on the correct databases without re-running `discover_databases()`.
+**Verified fixed by:** Issue #27 (reopened) — PR `p1/fix-install-flow-bugs`. New unit tests:
+  `tests/test_browser.bats` — two new tests for `NSS_DB_PATHS` → `NSS_DATABASES` conversion.
+  `tests/test_orchestrator/test_setup_flow.py` — eight new tests for `_apply_state` `+=` handlers
+  and `_build_env` `NSS_DB_PATHS` inclusion.
+
+---
+
+## Issue #5: Three bugs cause Level 3 manual end-to-end test failure
+**Date found:** 2026-02-24
+**Step/Function:** `lib/opensc_conf.sh::configure_opensc_cac_driver()`, `lib/browser.sh::discover_databases()`,
+  `lib/pkcs11.sh::register_pkcs11_all()`, `lib/verify.sh::verify_pkcs11_registered()`
+**Symptom:** After a clean `cac_setup.py` install on a CachyOS VM with USB-passthrough card reader,
+  both Firefox and Chrome return "Certificate validation failed" on portal.apps.mil and
+  rdweb.wvd.azure.us. No certificate selection dialog appears. `state.json` and `action_log.json`
+  are created and populated. Card reader is detected by lsusb. Chrome was installed by the user
+  after `cac_setup.py` completed.
+**Root cause:** Three independent bugs:
+
+  **Bug 5a (CRITICAL — causes Firefox to fail): `configure_opensc_cac_driver` fooled by
+  commented-out default opensc.conf directive.**
+  The Arch/CachyOS `opensc` package ships `/etc/opensc/opensc.conf` with a commented-out line:
+  `    # force_card_driver = cac;`
+  The idempotency check `grep -q "force_card_driver"` matches the comment and reports "already
+  configured", returning 0 without writing the active directive. OpenSC then uses its card
+  auto-detection heuristic, which may select the PIV-II driver instead of the CAC driver. With
+  the wrong driver, OpenSC cannot read the card → the PKCS11 module returns no tokens → browsers
+  cannot find the client certificate → the portal receives no cert and reports "Certificate
+  validation failed". The install log shows "OpenSC CAC driver forcing already configured" even
+  though the config is still commented out.
+
+  **Bug 5b (CORRECTNESS — causes Chrome to fail): `~/.pki/nssdb` not created when Chromium is
+  absent at install time.**
+  `discover_databases()` only calls `_ensure_nssdb()` and adds `~/.pki/nssdb` to `NSS_DATABASES`
+  when `CHROMIUM_ANY_FOUND=true`. If Chrome or Chromium is not installed when `cac_setup.py`
+  runs, the shared NSS database is never created, the PKCS11 module is never registered in it,
+  and DoD root CAs are never imported into it. When the user later installs Chrome (a common
+  sequence: install CAC setup first, then install browsers), Chrome's NSS database is unconfigured
+  and it cannot use the CAC.
+
+  **Bug 5c (SILENT FAILURE): `register_pkcs11_all` and `verify_pkcs11_registered` succeed silently
+  with an empty `NSS_DATABASES` array.**
+  If `NSS_DATABASES` is empty (e.g., `NSS_DB_PATHS` was not injected, or the import phase failed
+  to populate `state.nss_databases`), the for-loop iterates zero times, `$bad` stays 0, and both
+  functions return 0 — falsely reporting PKCS11 registration succeeded / verification passed.
+
+**Fix applied:**
+  1. `lib/opensc_conf.sh` — replaced `grep -q "force_card_driver"` with a regex that only matches
+     UNCOMMENTED `force_card_driver = cac` lines:
+     `grep -qE "^[[:space:]]*force_card_driver[[:space:]]*=[[:space:]]*['\"]?cac['\"]?"`.
+     The function now correctly adds the active directive even when the default commented-out
+     example is already in the file.
+  2. `lib/browser.sh::discover_databases()` — removed the `if [[ "$CHROMIUM_ANY_FOUND" == true ]]`
+     guard around `_ensure_nssdb()`. `~/.pki/nssdb` is now always created and always added to
+     `NSS_DATABASES`, regardless of which browsers are installed. This future-proofs the install
+     against browsers added after setup runs.
+  3. `lib/pkcs11.sh::register_pkcs11_all()` — added a guard that exits 1 with a clear error if
+     `${#NSS_DATABASES[@]} -eq 0` is reached after the PKCS11 library check. Prevents silent
+     no-op from propagating as success.
+  4. `lib/verify.sh::verify_pkcs11_registered()` — added the same guard: returns 1 with an error
+     log if `NSS_DATABASES` is empty, instead of returning 0 (nothing checked is not a pass).
+**Verified fixed by:** Issue #30 — PR `p1/fix-opensc-conf-and-nssdb`. New BATS tests:
+  `tests/test_opensc_conf.bats` — commented-out directive triggers active-line insertion.
+  `tests/test_browser.bats` — nssdb always added to NSS_DATABASES even with no Chromium.
+  `tests/test_pkcs11.bats` — register_pkcs11_all exits non-zero with empty NSS_DATABASES.
+  `tests/test_verify.bats` — verify_pkcs11_registered returns non-zero with empty NSS_DATABASES.
+
+---
+
 *Add numbered runtime issues below as testing begins.*

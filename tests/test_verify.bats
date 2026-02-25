@@ -68,3 +68,9 @@ teardown() {
     MOCK_MODUTIL_LIST_OUTPUT="" MOCK_SYSTEMCTL_ACTIVE=3 run_uninstall_verification
     grep -q "passed" "$_CAC_LOG_FILE"
 }
+
+@test "verify_pkcs11_registered returns non-zero when NSS_DATABASES is empty" {
+    NSS_DATABASES=()
+    run verify_pkcs11_registered
+    [ "$status" -ne 0 ]
+}

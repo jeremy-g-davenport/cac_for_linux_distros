@@ -147,13 +147,20 @@ discover_databases() {
                   "$REAL_HOME/.mozilla/firefox" \
                   -name cert9.db 2>/dev/null | grep -v Trash || true)
 
-    # Chromium-based browsers share a single NSS database
+    # Always create the shared system NSS database (~/.pki/nssdb) and include it
+    # in NSS_DATABASES, regardless of whether a Chromium-based browser is
+    # currently installed. This future-proofs the install: Chrome, Chromium,
+    # Edge, and Brave all use ~/.pki/nssdb for PKCS11 modules and cert trust.
+    # If any of those browsers is installed AFTER cac_setup.py runs, the PKCS11
+    # module and DoD certs are already in place — no re-run required.
+    # See KNOWN_ISSUES.md Issue #5b.
+    _ensure_nssdb
+    if [[ -d "$REAL_HOME/.pki/nssdb" ]]; then
+        log_info "System NSS database: $REAL_HOME/.pki/nssdb"
+        NSS_DATABASES+=("$REAL_HOME/.pki/nssdb")
+    fi
     if [[ "$CHROMIUM_ANY_FOUND" == true ]]; then
-        _ensure_nssdb
-        if [[ -d "$REAL_HOME/.pki/nssdb" ]]; then
-            log_info "Chromium NSS database: $REAL_HOME/.pki/nssdb"
-            NSS_DATABASES+=("$REAL_HOME/.pki/nssdb")
-        fi
+        log_info "Chromium-based browser detected — PKCS11 and certs will be registered in the NSS database above."
     fi
 
     if [[ ${#NSS_DATABASES[@]} -eq 0 ]]; then
