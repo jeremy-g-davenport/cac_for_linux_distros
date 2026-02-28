@@ -217,6 +217,20 @@ installation, troubleshooting, certificate management, snapshots, and more.
 
 ---
 
+## Verified Environments
+
+End-to-end CAC authentication confirmed working (Firefox and Chrome, certificate
+selection dialog displayed, CAC-protected site accessible):
+
+| Distribution | Desktop | Kernel | Graphics | Result |
+|---|---|---|---|---|
+| CachyOS | KDE Plasma 6.6.1 · KDE Frameworks 6.23.0 · Qt 6.10.2 | 6.19.3-2-cachyOS (x86\_64) | Wayland | **Verified** |
+
+> **Note:** On a minimal VM installation with low RAM, installation and
+> configuration takes approximately 5 minutes end-to-end.
+
+---
+
 ## Contributing
 
 See `CONTRIBUTING.md` for the full contribution guide,
