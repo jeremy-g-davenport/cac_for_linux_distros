@@ -496,3 +496,79 @@ any need to source an activation script. Works in any shell.
 ---
 
 *Add numbered runtime issues below as testing begins.*
+
+---
+
+## Red Hat / Fedora Family Issues (pre-documented, 2026-02-28)
+
+The following issues were identified during design of Red Hat family support and addressed in `p1/redhat-distro`. They are documented here for reference during Fedora VM testing.
+
+---
+
+### FN1 — `certutil`/`modutil` not found in preflight on fresh Fedora
+
+**Date:** 2026-02-28
+**Status:** Fixed
+**Symptom:** Preflight phase exits with `E_NODEPS` — "Required tool not found: certutil" on a fresh Fedora system without `nss-tools` pre-installed.
+**Root cause:** `detect_required_tools()` in `lib/detect.sh` originally included `certutil` and `modutil` in the fatal tool-check loop. On Arch, `nss` (which ships these binaries) tends to be pre-installed as a system dependency. On Fedora, `nss-tools` is a separate optional package.
+**Fix:** Moved `certutil` and `modutil` out of the fatal loop. They are now checked with a warning-only path: `log_warn "Tool not yet available: $tool (will be installed in packages phase)"`. The fatal check happens post-install via `verify_certutil()` in the packages phase.
+**Verification:** `tests/test_detect.bats` — "detect_required_tools succeeds even when certutil is absent from PATH"
+
+---
+
+### FN2 — PKCS11 library at `/usr/lib64/` not `/usr/lib/`
+
+**Date:** 2026-02-28
+**Status:** Fixed (by design)
+**Symptom:** OpenSC PKCS11 module not found at `/usr/lib/opensc-pkcs11.so` on Fedora; browser and `pkcs11-tool` cannot load it.
+**Root cause:** Red Hat family distributions follow the multiarch convention and place 64-bit native libraries in `/usr/lib64/`. The Arch path `/usr/lib/opensc-pkcs11.so` does not exist on Fedora.
+**Fix:** `distros/redhat/config.py` sets `PKCS11_LIB = "/usr/lib64/opensc-pkcs11.so"`, injected by Python as `PKCS11_LIB` env var.
+**Verification:** Integration test — `pkcs11-tool --list-readers` and `modutil -list -dbdir ~/.pki/nssdb` should show the module loaded.
+
+---
+
+### FN3 — `opensc.conf` path differs on Fedora
+
+**Date:** 2026-02-28
+**Status:** Fixed (by design)
+**Symptom:** OpenSC does not pick up `force_card_driver = cac` setting; CAC card uses PIV-II driver instead of CAC driver.
+**Root cause:** Fedora's `opensc` RPM compiles with the config path `/etc/opensc.conf` (flat). Arch uses `/etc/opensc/opensc.conf` (subdirectory). Writing to the wrong path has no effect.
+**Fix:** `distros/redhat/config.py` sets `OPENSC_CONF = "/etc/opensc.conf"`. Python injects this as the `OPENSC_CONF` env var. `lib/opensc_conf.sh` already has a `[[ -v OPENSC_CONF ]] || OPENSC_CONF="/etc/opensc/opensc.conf"` guard; the injected value takes precedence.
+**Verification:** After install, check `/etc/opensc.conf` contains `force_card_driver = cac` (uncommented).
+
+---
+
+### FN4 — Package name differences on Fedora
+
+**Date:** 2026-02-28
+**Status:** Fixed (by design)
+**Symptom:** `dnf install pcsclite nss` fails — package names do not exist in Fedora repositories.
+**Root cause:** Fedora RPM naming differs from Arch:
+- `pcsclite` → `pcsc-lite` (hyphen, not concatenated)
+- `nss` → `nss-tools` (`certutil`/`modutil` are in the `-tools` subpackage)
+- `pcsc-tools` → `pcsc-lite-utils` (pcsc_scan and friends)
+**Fix:** `distros/redhat/config.py::REQUIRED_PACKAGES` uses the correct Fedora package names.
+**Note:** Verify `pcsc-lite-utils` package name on target Fedora version: `dnf provides pcsc_scan`
+**Verification:** After packages phase, `rpm -q pcsc-lite ccid opensc nss-tools` all return 0.
+
+---
+
+### FN5 — No AUR helper on Fedora; AUR detection must be skipped
+
+**Date:** 2026-02-28
+**Status:** Fixed
+**Symptom:** `detect_aur_helper()` hangs or errors on Fedora; no `paru` or `yay` equivalent exists.
+**Root cause:** The packages phase unconditionally called `detect_aur_helper()`, which is an Arch-specific function.
+**Fix:** `RedHatDriver.has_aur` returns `False`. Python injects `HAS_AUR=0`. `bash/install.sh` guards the call: `if [[ "${HAS_AUR:-0}" == "1" ]]; then detect_aur_helper; fi`.
+**Verification:** Packages phase completes without AUR-related errors on Fedora.
+
+---
+
+### FN6 — SELinux enforcement may silently block pcscd access
+
+**Date:** 2026-02-28
+**Status:** Informational warning added; requires VM testing to confirm
+**Symptom:** pcscd socket activates but browsers cannot communicate with it under SELinux enforcing mode; card reader reported but authentication fails.
+**Root cause:** Fedora ships with SELinux enforcing by default. The `pcscd` daemon runs as `pcscd_t`. Browser PKCS11 loading involves domain transitions that may be denied by SELinux policy depending on whether `pcsc-lite-selinux` policy is installed.
+**Fix:** `detect_selinux()` added to `lib/detect.sh`. Called from preflight phase. Emits a warning when `getenforce` returns "Enforcing", directing users to `ausearch -m avc -ts recent` if card access fails. Modern Fedora's `pcsc-lite` RPM includes the selinux subpackage.
+**Verification:** On Fedora VM: `getenforce` shows Enforcing; after install, `pkcs11-tool --list-objects --login` succeeds without AVC denials in `ausearch -m avc -ts recent`.

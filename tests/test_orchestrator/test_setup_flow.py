@@ -57,10 +57,24 @@ class TestBuildEnvNssDbPaths(unittest.TestCase):
     class _FakeDriver:
         pkcs11_lib_path = "/usr/lib/opensc-pkcs11.so"
         pcscd_unit = "pcscd.socket"
+        opensc_conf_path = "/etc/opensc/opensc.conf"
+        has_aur = True
+        package_manager = "pacman"
+        required_packages = ["pcsclite", "opensc"]
+        smart_card_packages = ["pcsclite", "opensc"]
 
         class distro_info:
             distro_id = "cachyos"
             arch = "x86_64"
+
+        def install_packages(self, packages):
+            return ["pacman", "-S", "--needed", "--noconfirm", *packages]
+
+        def remove_packages(self, packages):
+            return ["pacman", "-Rns", "--noconfirm", *packages]
+
+        def sync_package_db(self):
+            return ["pacman", "-Syu", "--noconfirm"]
 
     def test_nss_db_paths_included_when_state_has_databases(self):
         state = InstallState(

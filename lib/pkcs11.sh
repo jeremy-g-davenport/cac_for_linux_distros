@@ -89,7 +89,7 @@ register_pkcs11_all() {
 
     if [[ ! -f "$OPENSC_PKCS11_LIB" ]]; then
         log_error "OpenSC PKCS11 library not found: $OPENSC_PKCS11_LIB"
-        log_error "Ensure opensc is installed: pacman -S opensc"
+        log_error "Ensure opensc is installed (e.g. pacman -S opensc / dnf install -y opensc)."
         exit 1
     fi
 

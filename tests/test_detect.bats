@@ -63,3 +63,42 @@ teardown() {
     mapfile -t items < <(_state_read_list "nss_databases")
     [ "${#items[@]}" -eq 0 ]
 }
+
+@test "detect_required_tools succeeds even when certutil is absent from PATH" {
+    # certutil/modutil are installed by the packages phase, not a preflight requirement.
+    # Removing them from PATH must result in a warning, not a fatal exit.
+    local no_cert_dir="$BATS_TMPDIR/no_certutil"
+    mkdir -p "$no_cert_dir"
+    # Build a PATH that has all required system tools except certutil/modutil
+    local filtered_path
+    filtered_path="$(echo "$PATH" | tr ':' '\n' | grep -v "mocks" | tr '\n' ':' | sed 's/:$//')"
+    PATH="$no_cert_dir:$filtered_path" run detect_required_tools
+    [ "$status" -eq 0 ]
+}
+
+@test "detect_selinux is a no-op when getenforce is absent from PATH" {
+    local no_selinux_dir="$BATS_TMPDIR/no_selinux"
+    mkdir -p "$no_selinux_dir"
+    PATH="$no_selinux_dir" run detect_selinux
+    [ "$status" -eq 0 ]
+}
+
+@test "detect_selinux logs warning when SELinux is Enforcing" {
+    local mock_dir="$BATS_TMPDIR/selinux_mock"
+    mkdir -p "$mock_dir"
+    printf '#!/bin/bash\necho "Enforcing"\n' > "$mock_dir/getenforce"
+    chmod +x "$mock_dir/getenforce"
+    PATH="$mock_dir:$PATH" run detect_selinux
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"SELinux is Enforcing"* ]]
+}
+
+@test "detect_selinux logs info when SELinux is Permissive" {
+    local mock_dir="$BATS_TMPDIR/selinux_permissive"
+    mkdir -p "$mock_dir"
+    printf '#!/bin/bash\necho "Permissive"\n' > "$mock_dir/getenforce"
+    chmod +x "$mock_dir/getenforce"
+    PATH="$mock_dir:$PATH" run detect_selinux
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Permissive"* ]]
+}

@@ -33,12 +33,17 @@ case "$PHASE" in
         detect_root
         detect_real_user
         detect_required_tools
+        detect_selinux
         check_browsers_closed
         ;;
 
     --phase=packages)
         log_section "Phase 2: Package Installation"
-        detect_aur_helper
+        if [[ "${HAS_AUR:-0}" == "1" ]]; then
+            detect_aur_helper
+        else
+            log_info "AUR not available on this distro — skipping AUR helper detection."
+        fi
         install_official_packages
         verify_certutil
         detect_post_install_tools
@@ -99,8 +104,11 @@ case "$PHASE" in
         detect_root
         detect_real_user
         detect_required_tools
+        detect_selinux
         check_browsers_closed
-        detect_aur_helper
+        if [[ "${HAS_AUR:-0}" == "1" ]]; then
+            detect_aur_helper
+        fi
         install_official_packages
         verify_certutil
         detect_post_install_tools

@@ -7,6 +7,7 @@ Valid for both x86_64 and aarch64 on Arch-based distributions.
 
 PKCS11_LIB = "/usr/lib/opensc-pkcs11.so"
 PCSCD_UNIT = "pcscd.socket"
+OPENSC_CONF = "/etc/opensc/opensc.conf"
 
 # Full package list required for CAC authentication
 REQUIRED_PACKAGES = [

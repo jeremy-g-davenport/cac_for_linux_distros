@@ -7,6 +7,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from distros.arch.driver import ArchDriver
+from distros.redhat.driver import RedHatDriver
 from distros.detect import OS_RELEASE_PATH, detect_distro
 
 
@@ -34,6 +35,33 @@ _UNKNOWN_OS_RELEASE = """\
 NAME="FictionalOS"
 ID=fictionalos
 PRETTY_NAME="FictionalOS 1.0"
+"""
+
+_FEDORA_OS_RELEASE = """\
+NAME="Fedora Linux"
+ID=fedora
+PRETTY_NAME="Fedora Linux 40 (Workstation Edition)"
+"""
+
+_RHEL_OS_RELEASE = """\
+NAME="Red Hat Enterprise Linux"
+ID=rhel
+ID_LIKE=fedora
+PRETTY_NAME="Red Hat Enterprise Linux 9.3 (Plow)"
+"""
+
+_ROCKY_OS_RELEASE = """\
+NAME="Rocky Linux"
+ID=rocky
+ID_LIKE="rhel centos fedora"
+PRETTY_NAME="Rocky Linux 9.3 (Blue Onyx)"
+"""
+
+_ALMALINUX_OS_RELEASE = """\
+NAME="AlmaLinux"
+ID=almalinux
+ID_LIKE="rhel centos fedora"
+PRETTY_NAME="AlmaLinux OS 9.3 (Shamrock Pampas Cat)"
 """
 
 
@@ -92,6 +120,36 @@ class TestDetectDistro(unittest.TestCase):
             with patch("distros.detect.platform.machine", return_value="x86_64"):
                 info, _ = detect_distro()
         self.assertIn("arch", info.id_like)
+
+    # ── Red Hat family routing ──────────────────────────────────────────────
+
+    def test_fedora_returns_redhat_driver(self):
+        with patch.object(Path, "read_text", return_value=_FEDORA_OS_RELEASE):
+            with patch("distros.detect.platform.machine", return_value="x86_64"):
+                info, driver = detect_distro()
+        self.assertEqual(info.distro_id, "fedora")
+        self.assertIsInstance(driver, RedHatDriver)
+
+    def test_rhel_returns_redhat_driver(self):
+        with patch.object(Path, "read_text", return_value=_RHEL_OS_RELEASE):
+            with patch("distros.detect.platform.machine", return_value="x86_64"):
+                info, driver = detect_distro()
+        self.assertEqual(info.distro_id, "rhel")
+        self.assertIsInstance(driver, RedHatDriver)
+
+    def test_rocky_returns_redhat_driver(self):
+        with patch.object(Path, "read_text", return_value=_ROCKY_OS_RELEASE):
+            with patch("distros.detect.platform.machine", return_value="x86_64"):
+                info, driver = detect_distro()
+        self.assertEqual(info.distro_id, "rocky")
+        self.assertIsInstance(driver, RedHatDriver)
+
+    def test_almalinux_returns_redhat_driver(self):
+        with patch.object(Path, "read_text", return_value=_ALMALINUX_OS_RELEASE):
+            with patch("distros.detect.platform.machine", return_value="x86_64"):
+                info, driver = detect_distro()
+        self.assertEqual(info.distro_id, "almalinux")
+        self.assertIsInstance(driver, RedHatDriver)
 
 
 if __name__ == "__main__":

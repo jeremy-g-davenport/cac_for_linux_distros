@@ -170,6 +170,15 @@ def _parse_action_detail(action_type: str, extra: list[str]) -> dict:
     return {"raw": extra}
 
 
+# Map from package_manager name to the shell command used to query a single package.
+# Injected as PKG_QUERY_CMD into Bash; lib/packages.sh uses it in is_package_installed().
+_PM_QUERY: dict[str, str] = {
+    "pacman": "pacman -Qi",
+    "dnf":    "rpm -q",
+    "apt":    "dpkg -s",
+}
+
+
 def _build_env(driver, sudo_user: str, state: InstallState) -> dict:
     """Build the environment dict injected into every Bash subprocess."""
     import os
@@ -186,4 +195,17 @@ def _build_env(driver, sudo_user: str, state: InstallState) -> dict:
         env["REAL_HOME"] = pwd.getpwnam(sudo_user).pw_dir
     except (KeyError, ImportError):
         env["REAL_HOME"] = f"/home/{sudo_user}"
+
+    # Distro-specific package management env vars consumed by lib/packages.sh.
+    # install_packages([]) / remove_packages([]) return just the command prefix
+    # (empty packages list → no trailing args appended).
+    env["OPENSC_CONF"]             = driver.opensc_conf_path
+    env["HAS_AUR"]                 = "1" if driver.has_aur else "0"
+    env["PKG_QUERY_CMD"]           = _PM_QUERY.get(driver.package_manager, driver.package_manager)
+    env["PKG_SYNC_CMD"]            = " ".join(driver.sync_package_db())
+    env["PKG_INSTALL_PREFIX"]      = " ".join(driver.install_packages([]))
+    env["PKG_REMOVE_PREFIX"]       = " ".join(driver.remove_packages([]))
+    env["REQUIRED_PACKAGES_ENV"]   = " ".join(driver.required_packages)
+    env["SMART_CARD_PACKAGES_ENV"] = " ".join(driver.smart_card_packages)
+
     return env
