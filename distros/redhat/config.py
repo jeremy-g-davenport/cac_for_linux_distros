@@ -15,16 +15,15 @@ OPENSC_CONF = "/etc/opensc.conf"
 
 # Full package list required for CAC authentication on Fedora/RHEL.
 # Key differences from Arch:
-#   pcsclite    → pcsc-lite        (RPM naming uses a hyphen)
-#   nss         → nss-tools        (certutil/modutil are in the -tools subpackage)
-#   pcsc-tools  → pcsc-lite-utils  (pcsc_scan lives here on Fedora)
-# Verify pcsc-lite-utils name on target: dnf provides pcsc_scan
+#   pcsclite    → pcsc-lite    (RPM naming uses a hyphen)
+#   nss         → nss-tools    (certutil/modutil are in the -tools subpackage)
+#   pcsc-tools  → pcsc-tools   (same name on Fedora; verified on Fedora 43 with dnf provides pcsc_scan)
 REQUIRED_PACKAGES = [
     "pcsc-lite",
     "ccid",
     "opensc",
     "nss-tools",
-    "pcsc-lite-utils",
+    "pcsc-tools",
     "unzip",
     "wget",
 ]
@@ -34,7 +33,7 @@ SMART_CARD_PACKAGES = [
     "pcsc-lite",
     "ccid",
     "opensc",
-    "pcsc-lite-utils",
+    "pcsc-tools",
 ]
 
 # Firefox profile root candidates, relative to $HOME.

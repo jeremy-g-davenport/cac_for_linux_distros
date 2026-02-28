@@ -82,7 +82,7 @@ _setup_redhat_env() {
     export PKG_INSTALL_PREFIX="dnf install -y"
     export PKG_REMOVE_PREFIX="dnf remove -y"
     export REQUIRED_PACKAGES_ENV="pcsc-lite ccid opensc nss-tools"
-    export SMART_CARD_PACKAGES_ENV="pcsc-lite ccid opensc pcsc-lite-utils"
+    export SMART_CARD_PACKAGES_ENV="pcsc-lite ccid opensc pcsc-tools"
     # Re-source packages.sh so it picks up the new env vars
     _source_lib "packages"
 }

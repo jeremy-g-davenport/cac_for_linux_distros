@@ -546,10 +546,10 @@ The following issues were identified during design of Red Hat family support and
 **Root cause:** Fedora RPM naming differs from Arch:
 - `pcsclite` → `pcsc-lite` (hyphen, not concatenated)
 - `nss` → `nss-tools` (`certutil`/`modutil` are in the `-tools` subpackage)
-- `pcsc-tools` → `pcsc-lite-utils` (pcsc_scan and friends)
+- `pcsc-tools` → `pcsc-tools` (same name; verified on Fedora 43 via `dnf provides pcsc_scan`)
 **Fix:** `distros/redhat/config.py::REQUIRED_PACKAGES` uses the correct Fedora package names.
-**Note:** Verify `pcsc-lite-utils` package name on target Fedora version: `dnf provides pcsc_scan`
-**Verification:** After packages phase, `rpm -q pcsc-lite ccid opensc nss-tools` all return 0.
+**Verified:** Fedora 43 — `dnf provides pcsc_scan` returns `pcsc-tools-1.7.0-7.fc43.x86_64`.
+**Verification:** After packages phase, `rpm -q pcsc-lite ccid opensc nss-tools pcsc-tools` all return 0.
 
 ---
 
