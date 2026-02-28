@@ -2236,6 +2236,16 @@ Tests use stdlib `unittest` (no pytest required for Phase 1):
 
 **Test environment:** CachyOS installation (bare metal or VM snapshot restorable to clean state).
 
+**Verified environment (Phase 1 end-to-end success):**
+
+| Field | Value |
+|---|---|
+| Distribution | CachyOS |
+| Desktop | KDE Plasma 6.6.1 · KDE Frameworks 6.23.0 · Qt 6.10.2 |
+| Kernel | 6.19.3-2-cachyOS (x86_64, 64-bit) |
+| Graphics platform | Wayland |
+| Result | CAC authentication confirmed in Firefox and Chrome — certificate selection dialog displayed, CAC-protected site accessible |
+
 1. **Snapshot** clean system before any CAC setup.
 2. Run `sudo python3 cac_setup.py`; record exit code and log path.
 3. Run `verify.sh` functions directly; confirm pcscd active, modules registered, certs present.
