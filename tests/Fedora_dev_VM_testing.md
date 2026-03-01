@@ -96,7 +96,9 @@ bats tests/*.bats
 
 > **Snapshot first.** Take a VirtualBox snapshot named "pre-integration-test" before running so you can roll back cleanly.
 
-The integration test suite runs a real install + uninstall cycle. It auto-skips unless `CI_INTEGRATION=1` is set, and requires root.
+The integration test suite auto-detects the running distro (Arch or Red Hat family), runs a full install + uninstall cycle, and verifies distro-specific paths and packages. It auto-skips unless `CI_INTEGRATION=1` is set and requires root.
+
+The install and uninstall steps stream live output so you can watch `dnf` progress in real time.
 
 ```bash
 sudo CI_INTEGRATION=1 bats tests/integration/test_full_install.bats
