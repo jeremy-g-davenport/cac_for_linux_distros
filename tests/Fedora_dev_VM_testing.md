@@ -87,7 +87,7 @@ bats tests/*.bats
 | `test_orchestrator/test_redhat_driver.py` | RedHatDriver properties (lib64, dnf, no AUR) |
 | `test_orchestrator/test_build_env_redhat.py` | `_build_env()` injects correct Fedora env vars |
 | `test_orchestrator/test_distro_detect.py` | `ID=fedora` routes to `RedHatDriver` |
-| `tests/test_packages.bats` | Red Hat scenario: dnf upgrade + dnf install |
+| `tests/test_packages.bats` | Red Hat scenario: dnf makecache + dnf install |
 | `tests/test_detect.bats` | certutil absent = warning only; detect_selinux behavior |
 
 ---
@@ -118,7 +118,7 @@ sudo .venv/bin/python cac_setup.py
 
 Watch the output for phase-by-phase progress. The phases in order are:
 1. `preflight` — root check, detect_selinux, browser check
-2. `packages` — dnf upgrade + dnf install (no AUR helper prompt)
+2. `packages` — dnf makecache (refresh metadata) + dnf install (no AUR helper prompt)
 3. `opensc-conf` — writes `force_card_driver = cac` to `/etc/opensc.conf`
 4. `service` — enables and starts `pcscd.socket`
 5. `certs` — downloads and extracts DoD AllCerts.zip

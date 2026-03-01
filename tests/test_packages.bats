@@ -78,7 +78,7 @@ _setup_redhat_env() {
     # Unset Arch-specific arrays so packages.sh re-reads from env vars.
     unset REQUIRED_PACKAGES SMART_CARD_PACKAGES_LIST
     export PKG_QUERY_CMD="rpm -q"
-    export PKG_SYNC_CMD="dnf upgrade -y"
+    export PKG_SYNC_CMD="dnf makecache"
     export PKG_INSTALL_PREFIX="dnf install -y"
     export PKG_REMOVE_PREFIX="dnf remove -y"
     export REQUIRED_PACKAGES_ENV="pcsc-lite ccid opensc nss-tools"
@@ -100,10 +100,10 @@ _setup_redhat_env() {
     [ "$status" -ne 0 ]
 }
 
-@test "install_official_packages invokes dnf upgrade when PKG_SYNC_CMD is set" {
+@test "install_official_packages invokes dnf makecache when PKG_SYNC_CMD is set" {
     _setup_redhat_env
     MOCK_RPM_Q_EXIT=0 install_official_packages
-    grep -q "dnf upgrade" "$MOCK_DNF_LOG"
+    grep -q "dnf makecache" "$MOCK_DNF_LOG"
 }
 
 @test "install_official_packages invokes dnf install for missing packages" {

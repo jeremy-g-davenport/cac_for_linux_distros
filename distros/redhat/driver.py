@@ -53,5 +53,8 @@ class RedHatDriver(DistroDriver):
         return ["dnf", "remove", "-y", *packages]
 
     def sync_package_db(self) -> list[str]:
-        # dnf upgrade refreshes metadata and upgrades packages in one step.
-        return ["dnf", "upgrade", "-y"]
+        # dnf makecache refreshes package metadata without upgrading the system.
+        # Unlike Arch (rolling release), Fedora/RHEL do not require a full system
+        # upgrade before installing packages — doing so would cause unexpected
+        # multi-hundred-MB downloads during CAC setup.
+        return ["dnf", "makecache"]

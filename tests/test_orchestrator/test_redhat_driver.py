@@ -69,10 +69,10 @@ class TestRedHatDriver(unittest.TestCase):
         self.assertIn("remove", cmd)
         self.assertIn("opensc", cmd)
 
-    def test_sync_package_db_uses_dnf_upgrade(self):
+    def test_sync_package_db_uses_dnf_makecache(self):
         cmd = self.driver.sync_package_db()
         self.assertIn("dnf", cmd)
-        self.assertIn("upgrade", cmd)
+        self.assertIn("makecache", cmd)
 
     def test_firefox_profile_root_is_standard_mozilla_path(self):
         roots = self.driver.firefox_profile_roots
