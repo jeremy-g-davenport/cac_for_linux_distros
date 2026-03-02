@@ -1,7 +1,7 @@
 """
-driver.py — ArchDriver: DistroDriver implementation for Arch-based distros.
+driver.py — RedHatDriver: DistroDriver implementation for Red Hat family distros.
 
-Covers CachyOS, Arch Linux, Manjaro, EndeavourOS, Garuda, and Artix.
+Covers Fedora, RHEL, CentOS Stream, Rocky Linux, and AlmaLinux.
 All constants sourced from config.py; no magic strings inline.
 """
 from __future__ import annotations
@@ -10,13 +10,13 @@ from ..base import DistroDriver, DistroInfo
 from . import config
 
 
-class ArchDriver(DistroDriver):
+class RedHatDriver(DistroDriver):
     def __init__(self, info: DistroInfo) -> None:
         self.distro_info = info
 
     @property
     def package_manager(self) -> str:
-        return "pacman"
+        return "dnf"
 
     @property
     def required_packages(self) -> list[str]:
@@ -44,14 +44,17 @@ class ArchDriver(DistroDriver):
 
     @property
     def has_aur(self) -> bool:
-        return True
+        return False
 
     def install_packages(self, packages: list[str]) -> list[str]:
-        return ["pacman", "-S", "--needed", "--noconfirm", *packages]
+        return ["dnf", "install", "-y", *packages]
 
     def remove_packages(self, packages: list[str]) -> list[str]:
-        return ["pacman", "-Rns", "--noconfirm", *packages]
+        return ["dnf", "remove", "-y", *packages]
 
     def sync_package_db(self) -> list[str]:
-        # Always full sync + upgrade — never -Sy alone (partial upgrade breaks rolling release)
-        return ["pacman", "-Syu", "--noconfirm"]
+        # No-op: assume the user has already updated the system with 'dnf upgrade'
+        # before running this tool. Unlike Arch (rolling release), Fedora/RHEL do not
+        # require a forced system sync before package install, and running dnf upgrade
+        # during CAC setup causes unexpected multi-hundred-MB downloads.
+        return ["true"]

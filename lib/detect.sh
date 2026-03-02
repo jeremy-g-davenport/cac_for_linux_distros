@@ -2,8 +2,8 @@
 # lib/detect.sh — Environment validation for cac_for_linux_distros
 #
 # Provides: validate_env, detect_root, detect_real_user, detect_required_tools,
-#           detect_post_install_tools, detect_conflicting_modules, detect_to_json,
-#           _state_read_list, remove_state_and_logs
+#           detect_selinux, detect_post_install_tools, detect_conflicting_modules,
+#           detect_to_json, _state_read_list, remove_state_and_logs
 #
 # OS/arch detection is handled by Python (distros/detect.py). All distro-specific
 # values (PKCS11_LIB, PCSCD_UNIT, REAL_USER, REAL_HOME, STATE_FILE) arrive as
@@ -58,14 +58,39 @@ detect_real_user() {
 
 detect_required_tools() {
     # Pre-install check: tools that must exist before packages are installed.
+    # certutil and modutil are intentionally NOT in the fatal list — they are
+    # provided by nss/nss-tools which is installed in the packages phase.
+    # They are verified post-install by verify_certutil() in packages.sh.
     local tool
-    for tool in systemctl certutil modutil getent id cut grep find date sha256sum lsmod modprobe; do
+    for tool in systemctl getent id cut grep find date sha256sum lsmod modprobe; do
         if ! command -v "$tool" > /dev/null 2>&1; then
             log_error "Required tool not found: $tool"
             exit "$E_NODEPS"
         fi
     done
+    # certutil/modutil: warn if absent — they arrive via the packages phase.
+    for tool in certutil modutil; do
+        if ! command -v "$tool" > /dev/null 2>&1; then
+            log_warn "Tool not yet available: $tool (will be installed in packages phase)"
+        fi
+    done
     log_success "All prerequisite tools found."
+}
+
+detect_selinux() {
+    # Informational only — SELinux enforcing mode does not prevent CAC setup,
+    # but unexpected AVC denials can silently block pcscd socket access.
+    # This function is a no-op on Arch and other non-SELinux systems where
+    # getenforce is absent.
+    command -v getenforce > /dev/null 2>&1 || return 0
+    local mode
+    mode="$(getenforce 2>/dev/null || echo 'Unknown')"
+    if [[ "$mode" == "Enforcing" ]]; then
+        log_warn "SELinux is Enforcing. pcscd policies should be covered by pcsc-lite-selinux."
+        log_warn "If card access fails after install, run: sudo ausearch -m avc -ts recent"
+    else
+        log_info "SELinux mode: $mode"
+    fi
 }
 
 detect_post_install_tools() {

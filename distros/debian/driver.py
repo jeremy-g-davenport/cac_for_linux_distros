@@ -41,6 +41,14 @@ class DebianDriver(DistroDriver):
     def firefox_profile_roots(self) -> list[str]:
         raise NotImplementedError
 
+    @property
+    def opensc_conf_path(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def has_aur(self) -> bool:
+        raise NotImplementedError
+
     def install_packages(self, packages: list[str]) -> list[str]:
         raise NotImplementedError
 

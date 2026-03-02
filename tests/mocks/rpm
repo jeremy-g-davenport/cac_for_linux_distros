@@ -1,0 +1,10 @@
+#!/bin/bash
+# tests/mocks/rpm — Configurable stub for package query.
+# Set MOCK_RPM_LOG to record invocations.
+# Set MOCK_RPM_Q_EXIT (default 0) to control -q (is_package_installed)
+# Set MOCK_RPM_EXIT  (default 0) for all other subcommands
+echo "rpm $*" >> "${MOCK_RPM_LOG:-/dev/null}"
+case "$*" in
+    *-q*) exit "${MOCK_RPM_Q_EXIT:-0}" ;;
+    *)    exit "${MOCK_RPM_EXIT:-0}" ;;
+esac

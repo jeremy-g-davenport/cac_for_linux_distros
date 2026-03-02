@@ -15,6 +15,7 @@ OS_RELEASE_PATH = Path("/etc/os-release")
 
 _ARCH_IDS = {"cachyos", "arch", "manjaro", "endeavouros", "garuda", "artix"}
 _DEBIAN_IDS = {"ubuntu", "debian", "linuxmint", "pop", "elementary", "kali", "raspbian"}
+_REDHAT_IDS = {"fedora", "rhel", "centos", "rocky", "almalinux"}
 
 
 def detect_distro() -> tuple[DistroInfo, DistroDriver]:
@@ -37,6 +38,10 @@ def detect_distro() -> tuple[DistroInfo, DistroDriver]:
     if distro_id in _DEBIAN_IDS or "debian" in id_like or "ubuntu" in id_like:
         from .debian.driver import DebianDriver
         return info, DebianDriver(info)
+
+    if distro_id in _REDHAT_IDS or "fedora" in id_like or "rhel" in id_like:
+        from .redhat.driver import RedHatDriver
+        return info, RedHatDriver(info)
 
     raise RuntimeError(
         f"Unsupported distribution: {info.pretty_name or distro_id!r}. "

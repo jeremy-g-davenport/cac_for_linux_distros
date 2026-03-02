@@ -1,0 +1,14 @@
+#!/bin/bash
+# tests/mocks/dnf — Configurable stub.
+# Set MOCK_DNF_LOG to record invocations.
+# Set MOCK_DNF_UPGRADE_EXIT (default 0) to control 'upgrade'
+# Set MOCK_DNF_INSTALL_EXIT (default 0) to control 'install'
+# Set MOCK_DNF_REMOVE_EXIT  (default 0) to control 'remove'
+# Set MOCK_DNF_EXIT         (default 0) for all other subcommands
+echo "dnf $*" >> "${MOCK_DNF_LOG:-/dev/null}"
+case "$*" in
+    *upgrade*) exit "${MOCK_DNF_UPGRADE_EXIT:-0}" ;;
+    *install*) exit "${MOCK_DNF_INSTALL_EXIT:-0}" ;;
+    *remove*)  exit "${MOCK_DNF_REMOVE_EXIT:-0}" ;;
+    *)         exit "${MOCK_DNF_EXIT:-0}" ;;
+esac

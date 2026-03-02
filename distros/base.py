@@ -55,6 +55,16 @@ class DistroDriver(ABC):
     def firefox_profile_roots(self) -> list[str]:
         """Candidate paths relative to $HOME, in preference order."""
 
+    @property
+    @abstractmethod
+    def opensc_conf_path(self) -> str:
+        """Absolute path to opensc.conf, e.g. '/etc/opensc/opensc.conf'."""
+
+    @property
+    @abstractmethod
+    def has_aur(self) -> bool:
+        """True if this distro uses the Arch User Repository."""
+
     @abstractmethod
     def install_packages(self, packages: list[str]) -> list[str]:
         """Return shell command tokens to install the given packages."""
