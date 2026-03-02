@@ -29,10 +29,9 @@ class TestBuildEnvRedHat(unittest.TestCase):
         env = _build_env(self.driver, "testuser", self.state)
         self.assertIn("rpm", env["PKG_QUERY_CMD"])
 
-    def test_pkg_sync_cmd_uses_dnf_makecache(self):
+    def test_pkg_sync_cmd_is_noop(self):
         env = _build_env(self.driver, "testuser", self.state)
-        self.assertIn("dnf", env["PKG_SYNC_CMD"])
-        self.assertIn("makecache", env["PKG_SYNC_CMD"])
+        self.assertEqual(env["PKG_SYNC_CMD"], "true")
 
     def test_pkg_install_prefix_uses_dnf_install(self):
         env = _build_env(self.driver, "testuser", self.state)

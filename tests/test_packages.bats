@@ -78,7 +78,7 @@ _setup_redhat_env() {
     # Unset Arch-specific arrays so packages.sh re-reads from env vars.
     unset REQUIRED_PACKAGES SMART_CARD_PACKAGES_LIST
     export PKG_QUERY_CMD="rpm -q"
-    export PKG_SYNC_CMD="dnf makecache"
+    export PKG_SYNC_CMD="true"
     export PKG_INSTALL_PREFIX="dnf install -y"
     export PKG_REMOVE_PREFIX="dnf remove -y"
     export REQUIRED_PACKAGES_ENV="pcsc-lite ccid opensc nss-tools"
@@ -100,10 +100,12 @@ _setup_redhat_env() {
     [ "$status" -ne 0 ]
 }
 
-@test "install_official_packages invokes dnf makecache when PKG_SYNC_CMD is set" {
+@test "install_official_packages skips dnf sync when PKG_SYNC_CMD is true" {
     _setup_redhat_env
+    # All packages already installed — only the sync step would normally run.
+    # With PKG_SYNC_CMD="true", no dnf call should appear in the log.
     MOCK_RPM_Q_EXIT=0 install_official_packages
-    grep -q "dnf makecache" "$MOCK_DNF_LOG"
+    [ ! -f "$MOCK_DNF_LOG" ] || [ ! -s "$MOCK_DNF_LOG" ]
 }
 
 @test "install_official_packages invokes dnf install for missing packages" {
